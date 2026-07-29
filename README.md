@@ -34,7 +34,8 @@ so nothing about your file is proprietary, and it renders the same on GitHub as 
 
 ## Getting started
 
-1. Install OMD from the VS Code Marketplace (or `code --install-extension omd.vsix`).
+1. Download the `.vsix` from the [latest release](https://github.com/pbleisch/omd/releases/latest)
+   and install it with `code --install-extension omd-<version>.vsix`.
 2. Open a `.md` file and run **OMD: Open in OMD editor**. Installing OMD does not change which
    editor opens markdown, so this is how you see it — try it on a file you know.
 3. Press `/` in the document for the block menu, or use the toolbar.

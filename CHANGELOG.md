@@ -6,12 +6,24 @@ All notable changes to OMD are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-07-29
+
+The first build meant to be handed to someone else. Two things you will notice immediately: OMD
+stays out of your way until you invite it in, and dragging table rows and columns now does what you
+expect.
+
 ### Changed
 
 - **OMD no longer takes over markdown on install.** The custom editor is registered at
   `priority: "option"` instead of `"default"`, so installing OMD changes nothing about which editor
   opens your `.md` files. Try it on a file with **OMD: Open in OMD editor**; make it permanent only
   if you want to.
+
+### Fixed
+
+- **Dragging a table row or column to reorder it now works.** The drop indicator followed the
+  cursor, but releasing the mouse left the table unchanged — the only way to move a line was the
+  overlay menu. Drag-to-reorder now lands the row or column where you dropped it.
 
 ### Added
 
