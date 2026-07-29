@@ -1,0 +1,76 @@
+# AGENTS.md — building OMD
+
+A short brief for coding agents (and humans skimming). Read this, then the design corpus. It says
+what OMD is, how it's shaped, the commands, and the gates a change has to clear. It does **not**
+re-explain the design — that lives in [`docs/design/`](docs/design/), which is the source of truth.
+
+## What OMD is
+
+A VS Code custom editor that renders `.md` as a finished WYSIWYG document — callouts, columns,
+diagrams, charts, comments — while the file on disk stays plain, GitHub-renderable GFM. OMD is a
+rich *view* over markdown, never a separate format converted at save. **The round-trip is the
+product:** open a file, save it with no edit, and it comes back byte-for-byte.
+
+## Read before you build
+
+Design corpus in [`docs/design/`](docs/design/), in order:
+**VISION → PRINCIPLES → ARCHITECTURE → SMART-BLOCKS → FORMATS → STYLE → DEPENDENCIES → DECISIONS.**
+Build/test invariants are in [`CONTRIBUTING.md`](CONTRIBUTING.md); the full documentation map is
+[`docs/README.md`](docs/README.md). When a detail is unspecified, decide by
+[`docs/design/PRINCIPLES.md`](docs/design/PRINCIPLES.md) — not by guesswork.
+
+## The shape
+
+Two processes that talk **only** through `src/shared/messages.ts`:
+
+- **Host** (`src/host/`, TypeScript → `dist/extension.js`) — owns the file, disk, network, and VS
+  Code APIs. The single source of truth on disk and the only writer to it.
+- **Editor / webview** (`src/webview/`, esbuild → `media/webview.js`) — a Milkdown/ProseMirror rich
+  view over the same markdown. Plugins add capabilities; CSS ships as text, injected once.
+
+## Commands
+
+```bash
+npm install
+npm run build             # host (tsc → out/ + esbuild → dist/) + webview (esbuild → media/)
+npm run typecheck         # tsc --noEmit (host)
+npm run lint              # eslint src test
+npm test                  # vitest: round-trip + rendering unit tests (jsdom)
+npm run test:integration  # host suite in a real VS Code (@vscode/test-electron)
+```
+
+The host runs from compiled output: a host change needs `npm run build:host` **and a Reload Window**
+to take effect; a webview change needs `npm run build:webview`. Press **F5** for an Extension
+Development Host. For fast visual iteration, `test/preview/index.html` runs the webview bundle in a
+plain browser — but it can't reproduce real pointer drags, native text selection, or host
+round-trips; verify those in the real host.
+
+## Hard gates (non-negotiable)
+
+1. **The round-trip is sacred.** Every on-disk construct gets a byte-for-byte round-trip test (open →
+   save → assert identical after whitespace normalization, `src/shared/roundtrip.ts`). A change that
+   makes a clean file diff-dirty on open is a bug, not a style nit.
+2. **You edit the document, never its source.** Nothing with a rendered form shows as raw markup.
+3. **Host ↔ editor communicate only through `src/shared/messages.ts`.** Every privileged action is a
+   request to the host, which validates and performs it.
+4. **CSS:** `omd-` class prefix; theme variables first (`var(--vscode-*, …)`). The five GitHub alert
+   accents are the *only* hardcoded colors allowed in chrome (`docs/design/STYLE.md`).
+5. **Chrome uses codicons, never emoji.** Emoji are in-content semantic markers only.
+6. **AI is opt-in and host-mediated.** The only AI surface is the `ai` smart block; it is **off by
+   default** (`omd.ai.enabled`), the **host** owns every model call (`vscode.lm` — the webview has no
+   network), it runs **only on an explicit action, never on load**, and its result is cached as GFM so
+   the round-trip holds. No chat participant, no language-model tools (`docs/design/DECISIONS.md`).
+
+## Adding a smart block?
+
+Blocks are file-based and discovered in three layers (workspace → user → shipped). Read
+[`docs/design/SMART-BLOCKS.md`](docs/design/SMART-BLOCKS.md) for the model and
+[`docs/design/FORMATS.md`](docs/design/FORMATS.md) for the exact on-disk bytes. Code you didn't ship
+never runs with editor privileges — discovered author code is forced to the sandboxed tier.
+
+## Definition of done
+
+Not "the test is green." Open the editor, do what a writer would do, and re-read
+`docs/design/PRINCIPLES.md`. If a principle is betrayed — unstyled, dead, misaligned, or the
+round-trip slips — it isn't done. Then: add the round-trip test, run `npm test` and `npm run lint`,
+and add a `CHANGELOG.md` entry under `[Unreleased]`.

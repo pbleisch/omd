@@ -1,0 +1,15 @@
+{
+  "name": "badge",
+  "title": "Badge",
+  "kind": "leaf",
+  "icon": "tag",
+  "group": "Inline",
+  "keywords": ["badge", "label", "pill", "status", "tag"],
+  "defaultParams": { "label": "new", "color": "#3fb950" },
+  "params": [
+    { "name": "label", "label": "Label", "type": "string", "required": true },
+    { "name": "color", "label": "Color", "type": "color", "default": "#3fb950" }
+  ],
+  "trust": "template",
+  "template": "<span style=\"display:inline-block;padding:1px 8px;border-radius:999px;font-size:.85em;color:#fff;background:{{color}}\">{{label}}</span>"
+}

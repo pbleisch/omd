@@ -1,0 +1,56 @@
+# What NOT to ship in the .vsix. The host and webview are both bundled (dist/extension.js and
+# media/webview.js), so node_modules is NOT shipped. What ships: dist/extension.js,
+# media/webview.js, icon.png, LICENSE, README.md, CHANGELOG.md, THIRD-PARTY-NOTICES.md.
+
+# Bundled already — no runtime dependency tree needed
+node_modules/**
+
+# Source, build inputs, and the tsc output (used only for typecheck + integration tests)
+src/**
+out/**
+esbuild.mjs
+tsconfig*.json
+.eslintrc*
+eslint.config.*
+vitest.config.ts
+*.config.ts
+
+# Source maps and the icon source (icon.png ships; icon.svg doesn't)
+dist/**/*.map
+media/**/*.map
+icon.svg
+
+# Tool state
+.omc/**
+
+# Tests & fixtures
+test/**
+**/*.test.ts
+.vscode-test/**
+.vscode-test.*
+
+# Tests & preview scaffolding baked into media/
+media/**/*.map
+test/preview/**
+
+# Design docs, backlog, and the demo wiki (not needed at runtime).
+# NOTE: LICENSE, README.md, CHANGELOG.md and THIRD-PARTY-NOTICES.md are deliberately NOT
+# listed here — they ship in the .vsix.
+docs/**
+examples/**
+scripts/**
+.claude/**
+showcase/**
+CONTRIBUTING.md
+SECURITY.md
+AGENTS.md
+CLAUDE.md
+
+# Repo & tooling config
+.github/**
+.gitignore
+.gitattributes
+.editorconfig
+.vscode/**
+**/.DS_Store
+*.vsix

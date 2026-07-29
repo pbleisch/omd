@@ -1,0 +1,15 @@
+{
+  "name": "metric",
+  "title": "Metric",
+  "kind": "leaf",
+  "icon": "dashboard",
+  "group": "Rich",
+  "keywords": ["metric", "stat", "kpi", "number", "figure"],
+  "defaultParams": { "value": "0", "label": "Metric", "unit": "" },
+  "params": [
+    { "name": "value", "label": "Value", "type": "string", "required": true },
+    { "name": "label", "label": "Label", "type": "string" },
+    { "name": "unit", "label": "Unit", "type": "string" }
+  ],
+  "trust": "sandboxed"
+}

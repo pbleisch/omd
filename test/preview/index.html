@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OMD — preview harness</title>
+    <style>
+      /* Approximate a VS Code dark theme so the theme-variable-first surface has realistic values. */
+      :root {
+        --vscode-editor-background: #1f1f1f;
+        --vscode-editor-foreground: #d4d4d4;
+        --vscode-font-family: -apple-system, 'Segoe UI', sans-serif;
+        --vscode-editor-font-family: 'SF Mono', Menlo, monospace;
+        --vscode-panel-border: #2b2b2b;
+        --vscode-sideBar-background: #181818;
+        --vscode-editorWidget-background: #252526;
+        --vscode-textLink-foreground: #4daafc;
+        --vscode-focusBorder: #4daafc;
+        --vscode-foreground: #cccccc;
+        --vscode-descriptionForeground: #9d9d9d;
+      }
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="omd-root"></div>
+    <!--
+      Usage (served from the repo root, e.g. `npx http-server -p 8791 .`):
+        http://localhost:8791/test/preview/index.html                 → the built-in sample
+        http://localhost:8791/test/preview/index.html?doc=showcase/Media.md → render a real file
+      The `?doc=` path is relative to the repo root; its folder becomes the media base so relative
+      image links resolve, exactly like the host's `webview.asWebviewUri`.
+    -->
+    <script src="./fixture.js"></script>
+    <script>
+      // Stub the VS Code webview API so the bundle runs in a plain browser.
+      window.acquireVsCodeApi = () => ({
+        postMessage: async (msg) => {
+          if (msg.type !== 'ready') return;
+          const fx = window.__OMD_FIXTURE__;
+          if (fx?.blocks) window.postMessage({ type: 'blocks', blocks: fx.blocks }, '*');
+
+          const params = new URLSearchParams(location.search);
+          const docPath = params.get('doc');
+          let text = fx?.sample ?? '# Preview\n';
+          let base = new URL('.', location.href).toString();
+          if (docPath) {
+            try {
+              text = await fetch('/' + docPath.replace(/^\//, '')).then((r) => r.text());
+              // The document folder is the media base (mirrors host asWebviewUri(dir)).
+              base = new URL('/' + docPath.replace(/[^/]+$/, ''), location.origin).toString();
+            } catch (e) {
+              text = '# Could not load ' + docPath + '\n\n' + String(e) + '\n';
+            }
+          }
+          window.postMessage({ type: 'mediaBase', base }, '*');
+          window.postMessage({ type: 'setDocument', text, version: 1 }, '*');
+        },
+        getState: () => undefined,
+        setState: () => {}
+      });
+    </script>
+    <script src="../../media/webview.js"></script>
+  </body>
+</html>

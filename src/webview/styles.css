@@ -1,0 +1,2935 @@
+/*
+ * OMD base surface. Theme-variable-first (ctx/STYLE.md): every theme-dependent color
+ * is var(--vscode-*, <dark fallback>) so the surface reads as part of the editor it
+ * lives in. All classes are omd- prefixed to avoid colliding with ProseMirror/VS Code.
+ */
+
+:root {
+  --omd-radius-chip: 2px;
+  --omd-radius-control: 3px;
+  --omd-radius-card: 4px;
+  --omd-radius-panel: 6px;
+  --omd-radius-pill: 999px;
+  --omd-space-1: 4px;
+  --omd-space-2: 8px;
+  --omd-space-3: 12px;
+  --omd-space-4: 16px;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  /* min-height (not height) so body grows with the document. A fixed 100% pins body to one
+     viewport, which collapses the sticky toolbar's containing block once you scroll past the
+     first screen — making the toolbar scroll away. Growing body keeps it stuck at the top. */
+  min-height: 100%;
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #d4d4d4);
+  font-family: var(--vscode-font-family, -apple-system, "Segoe UI", sans-serif);
+  font-size: var(--vscode-font-size, 14px);
+}
+
+#omd-root {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--omd-space-4) 40px 40vh;
+  /* Document zoom (ui/zoom): scales the writing surface, leaving toolbar/panels fixed. */
+  font-size: calc(var(--omd-zoom, 1) * 1em);
+}
+.omd-zoom-label {
+  min-width: 44px;
+}
+
+/* The ProseMirror writing surface. */
+.omd-prose {
+  outline: none;
+  line-height: 1.65;
+}
+
+.omd-prose:focus {
+  outline: none;
+}
+
+.omd-prose > * {
+  margin: 0 0 var(--omd-space-4) 0;
+}
+
+.omd-prose h1,
+.omd-prose h2,
+.omd-prose h3,
+.omd-prose h4 {
+  line-height: 1.3;
+  font-weight: 600;
+  margin: var(--omd-space-4) 0 var(--omd-space-2);
+}
+.omd-prose h1 {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+}
+.omd-prose h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+}
+.omd-prose h3 {
+  font-size: 1.25em;
+}
+.omd-prose h4 {
+  font-size: 1em;
+}
+
+.omd-prose a {
+  color: var(--vscode-textLink-foreground, #4daafc);
+  text-decoration: none;
+}
+.omd-prose a:hover {
+  text-decoration: underline;
+}
+
+.omd-prose code {
+  font-family: var(--vscode-editor-font-family, "SF Mono", Menlo, monospace);
+  font-size: 0.9em;
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.15));
+  padding: 0.15em 0.35em;
+  border-radius: var(--omd-radius-chip);
+}
+
+.omd-prose pre {
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.12));
+  padding: var(--omd-space-3) var(--omd-space-4);
+  border-radius: var(--omd-radius-card);
+  overflow-x: auto;
+}
+
+/* Plain code blocks: a subtle header with a searchable language picker. */
+.omd-codeblock-wrap {
+  border-radius: var(--omd-radius-card);
+  overflow: hidden;
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.12));
+}
+.omd-codeblock-header {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-1);
+  padding: 2px var(--omd-space-3);
+  color: var(--vscode-descriptionForeground, rgba(200, 200, 200, 0.6));
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(127, 127, 127, 0.18));
+  user-select: none;
+}
+.omd-codeblock-header .codicon {
+  font-size: 13px;
+  opacity: 0.6;
+}
+.omd-codeblock-lang {
+  font: inherit;
+  font-size: 0.78em;
+  color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 2px 4px;
+  border-radius: var(--omd-radius-control);
+  min-width: 7em;
+}
+.omd-codeblock-lang:focus {
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.14));
+  color: var(--vscode-input-foreground, inherit);
+}
+.omd-codeblock-wrap .omd-codeblock {
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.omd-prose pre code {
+  background: none;
+  padding: 0;
+}
+
+.omd-prose blockquote {
+  margin-left: 0;
+  padding-left: var(--omd-space-4);
+  border-left: 3px solid var(--vscode-textBlockQuote-border, var(--vscode-panel-border, #444));
+  color: var(--vscode-textBlockQuote-foreground, inherit);
+}
+
+.omd-prose table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.omd-prose th,
+.omd-prose td {
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  padding: var(--omd-space-1) var(--omd-space-2);
+  text-align: left;
+  /* Anchor the cell-selection overlay and the column-resize handle. */
+  position: relative;
+}
+.omd-prose th {
+  background: var(--vscode-sideBar-background, rgba(127, 127, 127, 0.08));
+  font-weight: 600;
+}
+
+/* Table editing (prosemirror-tables): cell selection, column resize, horizontal scroll. */
+.omd-prose .tableWrapper {
+  overflow-x: auto;
+}
+/* Cell-selection tint. It sits *behind* the cell's text (a negative-z `::after` inside the cell's
+   own stacking context), so the glyphs stay crisp and every selected cell — header or body — reads
+   the same, instead of the overlay dimming the text unevenly over the header's grey background. */
+.omd-prose .selectedCell {
+  z-index: 0; /* the cell becomes its own stacking context so the -1 tint stays within it */
+}
+.omd-prose .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--vscode-focusBorder, #4daafc) 32%, transparent);
+  pointer-events: none;
+}
+/* A cell-selection reads via that uniform tint, NOT the browser's text highlight. During a
+   real drag prosemirror keeps a DOM text selection in the anchor/head cell, so that one word
+   gets a second, brighter `::selection` the other cells lack — making only it look selected.
+   Suppress `::selection` inside cell-selected cells; selecting text *within* a single cell (a
+   plain TextSelection, no `.selectedCell`) is unaffected. */
+.omd-prose .selectedCell::selection,
+.omd-prose .selectedCell *::selection {
+  background: transparent;
+}
+.omd-prose .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  z-index: 3;
+  background: var(--vscode-focusBorder, #4daafc);
+  pointer-events: none;
+}
+.omd-prose.resize-cursor {
+  cursor: col-resize;
+}
+
+.omd-prose hr {
+  border: none;
+  border-top: 1px solid var(--vscode-panel-border, #2b2b2b);
+}
+
+/* Heading folding (plugins/heading-fold.ts) — a gutter chevron; folded sections are hidden. */
+.omd-heading-foldable,
+.omd-heading-folded {
+  position: relative;
+}
+.omd-fold-chevron {
+  position: absolute;
+  /* Fixed inner-gutter slot (not em — em scales with heading size and would drift into the drag
+     grip's outer slot at ~-40px on big headings). */
+  left: -16px;
+  top: 0.1em;
+  font-size: 0.7em;
+  line-height: inherit;
+  opacity: 0;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.1s ease;
+}
+.omd-prose :is(h1, h2, h3, h4, h5, h6):hover .omd-fold-chevron,
+.omd-fold-chevron--folded {
+  opacity: 0.55;
+}
+.omd-fold-chevron:hover {
+  opacity: 1;
+}
+.omd-fold-hidden {
+  display: none;
+}
+
+/* Literal markdown that didn't format (escaped-md plugin) — click to convert. */
+.omd-escaped-md {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--vscode-editorWarning-foreground, #cca700);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.omd-escaped-md:hover {
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 18%, transparent);
+  border-radius: 2px;
+}
+
+.omd-prose ul,
+.omd-prose ol {
+  padding-left: var(--omd-space-4);
+}
+/* Lists read better tighter than body prose (1.65) — the extra leading, plus the margin on the
+   paragraph each item wraps, spread short items too far apart. Collapse both (keeping a little
+   space only between multiple paragraphs inside one item). Bullet, numbered, and task alike. */
+.omd-prose li {
+  line-height: 1.4;
+}
+.omd-prose li > p {
+  margin: 0;
+}
+.omd-prose li > p + p {
+  margin-top: 0.4em;
+}
+
+.omd-prose img {
+  max-width: 100%;
+  border-radius: var(--omd-radius-card);
+}
+
+/* Task list checkboxes: drawn from data-checked, toggled by the task-list plugin. */
+.omd-prose li[data-item-type='task'] {
+  list-style: none;
+  position: relative;
+  /* Room for the checkbox inside the item's own box, so clicks in the gutter
+     land on the <li> (the task-list plugin toggles on those). */
+  padding-left: 1.6em;
+  margin-left: -0.4em;
+}
+.omd-prose li[data-item-type='task']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.28em;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--vscode-checkbox-border, #6b6b6b);
+  border-radius: var(--omd-radius-control);
+  background: var(--vscode-checkbox-background, transparent);
+  cursor: pointer;
+}
+.omd-prose li[data-item-type='task'][data-checked='true']::before {
+  background: var(--vscode-button-background, #4daafc);
+  border-color: var(--vscode-button-background, #4daafc);
+}
+/* Checkmark glyph for a checked item. */
+.omd-prose li[data-item-type='task'][data-checked='true']::after {
+  content: '';
+  position: absolute;
+  left: 0.35em;
+  top: 0.42em;
+  width: 3px;
+  height: 7px;
+  border: solid var(--vscode-button-foreground, #ffffff);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+/*
+ * GitHub alert callouts. Left border + low-alpha background in the kind's accent
+ * (ctx/STYLE.md), with a title row pairing the codicon and label. The accent arrives
+ * per-node as --omd-callout-accent so one rule styles all five kinds.
+ */
+.omd-prose .omd-callout {
+  border-left: 3px solid var(--omd-callout-accent, var(--vscode-panel-border));
+  background: color-mix(in srgb, var(--omd-callout-accent) 10%, transparent);
+  border-radius: var(--omd-radius-card);
+  padding: var(--omd-space-2) var(--omd-space-4);
+  margin: 0 0 var(--omd-space-4) 0;
+}
+/* The callout replaces the plain blockquote treatment. */
+.omd-prose .omd-callout {
+  color: var(--vscode-editor-foreground, #d4d4d4);
+}
+.omd-callout-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--omd-space-2);
+  font-weight: 600;
+  margin-bottom: var(--omd-space-1);
+  user-select: none;
+}
+.omd-callout-title-label {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+}
+/* Hover-revealed delete on a GFM alert — its marker line is hidden, so this is the only way to
+   remove the whole callout. Calm chrome (invisible until hover). */
+.omd-callout-delete,
+.omd-smartcallout-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  border-radius: var(--omd-radius-control);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s ease, background 0.1s ease, color 0.1s ease;
+}
+.omd-callout:hover .omd-callout-delete,
+.omd-smartcallout:hover .omd-smartcallout-delete {
+  opacity: 0.55;
+}
+.omd-callout-delete:hover,
+.omd-smartcallout-delete:hover {
+  opacity: 1;
+  color: var(--vscode-errorForeground, #f85149);
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.2));
+}
+.omd-callout-delete .codicon,
+.omd-smartcallout-delete .codicon {
+  font-size: 13px;
+}
+/* The smart callout delete sits at the top-right of the frame. */
+.omd-smartcallout-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+.omd-callout-title .codicon {
+  font-size: 16px;
+}
+/* The settings gear is quiet until the callout is hovered (Principle 6 — calm chrome). */
+.omd-callout-gear {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--omd-radius-control);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.omd-callout:hover .omd-callout-gear {
+  opacity: 0.6;
+}
+.omd-callout-gear:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.2));
+}
+.omd-callout-gear .codicon {
+  font-size: 13px;
+}
+/* A managed callout owns its title row; the body is the editable content beneath it. */
+.omd-callout--managed .omd-block-content {
+  padding: 0;
+}
+.omd-callout--managed .omd-block-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* OMD smart callout (omd:callout): a titled, coloured aside — mirrors the GFM/managed callout
+   look. `--omd-callout-accent` comes from the `color` param; the icon from the `icon` param. The
+   title is the first (bold) line of the body. The body is a blockquote whose default quote chrome
+   is stripped (high specificity + explicit transparent) so it doesn't read as a nested box. */
+.omd-prose .omd-smartcallout {
+  position: relative;
+  margin: 0 0 var(--omd-space-4) 0;
+  padding: var(--omd-space-2) var(--omd-space-4) var(--omd-space-2) 40px;
+  border-left: 3px solid var(--omd-callout-accent, var(--vscode-panel-border));
+  border-radius: var(--omd-radius-card);
+  background: color-mix(in srgb, var(--omd-callout-accent, #4daafc) 10%, transparent);
+  color: var(--vscode-editor-foreground, #d4d4d4);
+}
+.omd-smartcallout-icon {
+  position: absolute;
+  top: var(--omd-space-2);
+  left: 14px;
+  display: flex;
+  color: var(--omd-callout-accent, #4daafc);
+}
+.omd-smartcallout-icon .codicon {
+  font-size: 16px;
+}
+/* The body holds the blockquote; strip ALL of its quote chrome so the frame is the only box. */
+.omd-prose .omd-smartcallout-body {
+  padding: 0;
+}
+.omd-prose .omd-smartcallout-body blockquote {
+  margin: 0;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+/* First line of the callout = the title. */
+.omd-prose .omd-smartcallout-body blockquote > :first-child {
+  margin-top: 0;
+  color: var(--omd-callout-accent, #4daafc);
+  font-weight: 600;
+}
+.omd-prose .omd-smartcallout-body blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/*
+ * The floating-layer container (ui/floating.ts). Positioning is set inline; this only
+ * establishes stacking. Every transient over-editor surface (popover, context menu) is a
+ * child of one of these.
+ */
+.omd-floating {
+  z-index: 30;
+}
+
+/* Floating single-field param popover (ctx/STYLE.md — floating panels). */
+.omd-popover {
+  min-width: 200px;
+  padding: var(--omd-space-2);
+  background: var(--vscode-editorWidget-background, #252526);
+  border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
+  border-radius: var(--omd-radius-panel);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Right-click context menu (ui/context-menu.ts). */
+.omd-context-menu {
+  min-width: 200px;
+  padding: var(--omd-space-1);
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background, #252526));
+  color: var(--vscode-menu-foreground, inherit);
+  border: 1px solid var(--vscode-menu-border, var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3)));
+  border-radius: var(--omd-radius-panel);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.omd-context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  padding: var(--omd-space-1) var(--omd-space-2);
+  border-radius: var(--omd-radius-control);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.omd-context-menu-item:hover {
+  background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground, rgba(77, 170, 252, 0.25)));
+  color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground, #ffffff));
+}
+.omd-context-menu-item--disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.omd-context-menu-item--disabled:hover {
+  background: transparent;
+  color: inherit;
+}
+.omd-context-menu-icon {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+.omd-context-menu-label {
+  flex: 1;
+}
+.omd-context-menu-shortcut {
+  opacity: 0.55;
+  font-size: 0.85em;
+  margin-left: var(--omd-space-4);
+}
+.omd-context-menu-chevron {
+  margin-left: auto;
+  font-size: 0.9em;
+  opacity: 0.6;
+}
+/* Submenus can get tall (Insert lists every block); let them scroll rather than overflow. */
+.omd-context-menu {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.omd-context-menu-sep {
+  height: 1px;
+  margin: var(--omd-space-1) 0;
+  background: var(--vscode-menu-separatorBackground, var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.25)));
+}
+
+/* Block property panel (ui/param-panel.ts): header + typed field stack + Apply. */
+.omd-param-panel {
+  box-sizing: border-box;
+  min-width: 240px;
+  max-width: 340px;
+  background: var(--vscode-editorWidget-background, #252526);
+  border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
+  border-radius: var(--omd-radius-panel);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.omd-param-panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  padding: var(--omd-space-2);
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(127, 127, 127, 0.25));
+  background: var(--vscode-sideBar-background, rgba(127, 127, 127, 0.06));
+}
+.omd-param-panel-title {
+  flex: 1;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+.omd-param-panel-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--omd-radius-control);
+}
+.omd-param-panel-close:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15));
+}
+.omd-param-panel-body {
+  padding: var(--omd-space-2);
+  /* Two-column form: a label column sized to the widest label (so every control starts at
+     the same x) and a control column sized to the control. `justify-content: start` packs
+     both to the left — without it a grid's default `stretch` would blow the label column
+     out to fill the panel and shove the controls to the far right. */
+  display: grid;
+  grid-template-columns: max-content auto;
+  justify-content: start;
+  align-items: center;
+  column-gap: var(--omd-space-3);
+  row-gap: var(--omd-space-1);
+}
+/* Flatten each field row so its label + control join the panel-body grid directly. */
+.omd-param-panel-body .omd-field {
+  display: contents;
+}
+.omd-param-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--omd-space-2);
+  border-top: 1px solid var(--vscode-panel-border, rgba(127, 127, 127, 0.25));
+}
+.omd-param-panel-apply {
+  font: inherit;
+  font-size: 0.85em;
+  border: none;
+  border-radius: var(--omd-radius-control);
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+  cursor: pointer;
+  padding: 4px 12px;
+}
+.omd-param-panel-apply:hover {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+.omd-param-panel-apply:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Header gear that opens the property panel (plugins/shortcode/view.ts). */
+.omd-block-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+}
+.omd-block-gear {
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--omd-radius-control);
+}
+.omd-block-gear:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15));
+}
+
+/* Common per-block actions: copy / save / delete (blocks/block-actions.ts). */
+.omd-block-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.omd-block-action {
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--omd-radius-control);
+  display: inline-flex;
+  align-items: center;
+}
+.omd-smart-block:hover .omd-block-action,
+.omd-callout:hover .omd-block-action,
+.omd-tabs:hover .omd-block-action {
+  opacity: 0.75;
+}
+.omd-block-action:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15));
+}
+/* Cluster the chrome at the right edge of each block's header/strip. */
+.omd-block-header .omd-block-tabs {
+  margin-left: auto;
+}
+.omd-tabs-strip .omd-block-actions {
+  margin-left: auto;
+}
+
+/* Typed form field rows (ui/fields.ts), used by floating property panels. */
+.omd-field {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  margin-bottom: var(--omd-space-1);
+}
+.omd-field-label {
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+.omd-field-input {
+  width: 15rem;
+  max-width: 100%;
+  justify-self: start;
+  font: inherit;
+  font-size: 0.9em;
+  color: var(--vscode-input-foreground, inherit);
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.1));
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: var(--omd-radius-control);
+  padding: 4px 6px;
+  outline: none;
+  box-sizing: border-box;
+}
+.omd-field-input:focus {
+  border-color: var(--vscode-focusBorder, #4daafc);
+}
+/* A checkbox sits at natural size, left-aligned in its column — never stretched. */
+.omd-field-checkbox {
+  justify-self: start;
+}
+/* Segmented button group (Width S/M/L/Full, Align L/C/R): a joined row of toggle buttons where
+   exactly one — or none — is active. Used by the media property panel so size/align read as one
+   control rather than a stack of buttons. */
+.omd-field-seg {
+  display: inline-flex;
+  justify-self: start;
+  border: 1px solid var(--vscode-input-border, rgba(127, 127, 127, 0.35));
+  border-radius: var(--omd-radius-control);
+  overflow: hidden;
+}
+.omd-seg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  font: inherit;
+  font-size: 0.82em;
+  color: var(--vscode-input-foreground, inherit);
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.1));
+  border: none;
+  border-left: 1px solid var(--vscode-input-border, rgba(127, 127, 127, 0.35));
+  cursor: pointer;
+}
+.omd-seg:first-child {
+  border-left: none;
+}
+.omd-seg:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.2));
+}
+.omd-seg--active {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+}
+.omd-seg--active:hover {
+  background: var(--vscode-button-hoverBackground, var(--vscode-button-background, #0e639c));
+}
+.omd-seg .codicon {
+  font-size: 14px;
+}
+/* Width control: the stock-size button group plus a free-text input for a specific value. */
+.omd-field-width {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  justify-self: start;
+}
+.omd-field-widthinput {
+  width: 5rem;
+}
+/* Editable list field: borderless row of tag pills plus an "Add…" pill. It flows across the
+   available width and wraps only when it genuinely runs out (no fixed cap). */
+.omd-field-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.omd-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 3px 1px 7px;
+  font-size: 0.82em;
+  border-radius: 10px;
+  background: var(--vscode-badge-background, rgba(77, 170, 252, 0.25));
+  color: var(--vscode-badge-foreground, inherit);
+}
+.omd-pill-remove {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  font-size: 1.1em;
+  line-height: 1;
+  padding: 0 2px;
+}
+.omd-pill-remove:hover {
+  opacity: 1;
+}
+/* The input doubles as an "Add…" pill: compact (sized to fit), dashed and legible in both
+   themes, turning into a solid field on focus. */
+.omd-field-listinput {
+  width: auto;
+  min-width: 3.25rem;
+  border: 1px dashed var(--vscode-descriptionForeground, rgba(160, 160, 160, 0.8));
+  border-radius: 10px;
+  outline: none;
+  padding: 1px 8px;
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.14));
+  color: var(--vscode-input-foreground, inherit);
+  font: inherit;
+  font-size: 0.82em;
+}
+.omd-field-listinput::placeholder {
+  color: var(--vscode-foreground, #cccccc);
+  opacity: 0.85;
+}
+.omd-field-listinput:focus {
+  border-style: solid;
+  border-color: var(--vscode-focusBorder, #4daafc);
+}
+.omd-popover-label {
+  display: block;
+  font-size: 0.72em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  margin-bottom: var(--omd-space-1);
+}
+.omd-popover-row {
+  display: flex;
+  gap: var(--omd-space-1);
+}
+.omd-popover-input {
+  flex: 1;
+  font: inherit;
+  font-size: 0.9em;
+  color: var(--vscode-input-foreground, inherit);
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.1));
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: var(--omd-radius-control);
+  padding: 4px 6px;
+  outline: none;
+}
+.omd-popover-input:focus {
+  border-color: var(--vscode-focusBorder, #4daafc);
+}
+/* Autocomplete list under the popover input (e.g. heading anchors). */
+.omd-popover-suggest {
+  margin-top: var(--omd-space-1);
+  max-height: 180px;
+  overflow-y: auto;
+  border-top: 1px solid var(--vscode-panel-border, rgba(127, 127, 127, 0.25));
+}
+.omd-popover-suggest-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--omd-space-2);
+  padding: 3px 6px;
+  border-radius: var(--omd-radius-control);
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.omd-popover-suggest-item--active {
+  background: var(--vscode-list-activeSelectionBackground, rgba(90, 150, 240, 0.35));
+}
+.omd-popover-suggest-detail {
+  opacity: 0.55;
+  font-size: 0.85em;
+}
+.omd-popover-ok {
+  border: none;
+  border-radius: var(--omd-radius-control);
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+  cursor: pointer;
+  padding: 0 8px;
+}
+/* Find & Replace bar (plugins/find) — docked top-right, above the writing surface. */
+.omd-find-bar {
+  position: fixed;
+  top: 48px;
+  right: 16px;
+  z-index: 25;
+  /* fall through to the offset rules below when the comments panel is open */
+  display: flex;
+  flex-direction: column;
+  gap: var(--omd-space-1);
+  padding: var(--omd-space-2);
+  background: var(--vscode-editorWidget-background, #252526);
+  border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
+  border-radius: var(--omd-radius-panel);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.omd-find-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.omd-find-input {
+  width: 200px;
+  font: inherit;
+  font-size: 0.9em;
+  color: var(--vscode-input-foreground, inherit);
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.1));
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: var(--omd-radius-control);
+  padding: 4px 6px;
+  outline: none;
+}
+.omd-find-input:focus {
+  border-color: var(--vscode-focusBorder, #4daafc);
+}
+.omd-find-count {
+  min-width: 64px;
+  text-align: center;
+  font-size: 0.78em;
+  opacity: 0.65;
+}
+.omd-find-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--omd-radius-control);
+  background: transparent;
+  color: var(--vscode-foreground, #cccccc);
+  cursor: pointer;
+}
+.omd-find-btn--text {
+  font-size: 0.8em;
+  font-weight: 600;
+}
+.omd-find-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.2));
+}
+.omd-find-btn--active {
+  background: var(--vscode-inputOption-activeBackground, rgba(77, 170, 252, 0.25));
+  color: var(--vscode-inputOption-activeForeground, #ffffff);
+}
+/* Match highlights over the writing surface. */
+.omd-find-match {
+  background: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33));
+  border-radius: 2px;
+}
+.omd-find-match--current {
+  background: var(--vscode-editor-findMatchBackground, rgba(234, 92, 0, 0.66));
+}
+/* Clear the 300px comments panel when it's open (but not when collapsed away). */
+body.omd-has-threads .omd-find-bar {
+  right: 316px;
+}
+body.omd-has-threads.omd-collapse-comments .omd-find-bar {
+  right: 16px;
+}
+
+/* Custom hover tooltip (ui/tooltip) — reliable where the webview drops native `title`. */
+.omd-tooltip {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  padding: 3px 7px;
+  font-size: 0.78em;
+  white-space: nowrap;
+  color: var(--vscode-editorHoverWidget-foreground, #cccccc);
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  border: 1px solid var(--vscode-editorHoverWidget-border, rgba(127, 127, 127, 0.35));
+  border-radius: var(--omd-radius-control);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* Drag-to-reorder (plugins/drag-handle): a gutter grip and a drop-position line. */
+.omd-drag-handle {
+  position: fixed;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 22px;
+  border-radius: var(--omd-radius-control);
+  color: var(--vscode-foreground, #cccccc);
+  opacity: 0.4;
+  cursor: grab;
+}
+.omd-drag-handle:hover {
+  opacity: 0.9;
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.2));
+}
+.omd-drag-indicator {
+  position: fixed;
+  z-index: 24;
+  height: 2px;
+  background: var(--vscode-focusBorder, #4daafc);
+  border-radius: 1px;
+  pointer-events: none;
+}
+body.omd-dragging-block {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* On-canvas table affordances (plugins/table-controls): row/column bars that select and drag,
+   and "+" buttons on the boundaries to insert. A viewport-fixed overlay positioned from live
+   cell rects — it never touches the table's own DOM. */
+.omd-tbl-ctl-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 23;
+  pointer-events: none; /* only the handles/buttons inside are interactive */
+}
+.omd-tbl-handle {
+  position: absolute;
+  pointer-events: auto;
+  box-sizing: border-box;
+  background: var(--vscode-editorWidget-background, rgba(127, 127, 127, 0.12));
+  border: 1px solid var(--vscode-panel-border, rgba(127, 127, 127, 0.35));
+  opacity: 0.55;
+  transition: opacity 0.1s ease, background 0.1s ease;
+}
+.omd-tbl-handle--col {
+  border-bottom: none;
+  border-top-left-radius: var(--omd-radius-control, 3px);
+  border-top-right-radius: var(--omd-radius-control, 3px);
+  cursor: grab;
+}
+.omd-tbl-handle--row {
+  border-right: none;
+  border-top-left-radius: var(--omd-radius-control, 3px);
+  border-bottom-left-radius: var(--omd-radius-control, 3px);
+  cursor: grab;
+}
+.omd-tbl-handle--header {
+  cursor: pointer; /* the header row can be selected but not dragged */
+}
+.omd-tbl-handle:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.28));
+}
+/* A grip dot centred in the bar so it reads as a handle. */
+.omd-tbl-handle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--vscode-foreground, #cccccc);
+  opacity: 0.5;
+}
+.omd-tbl-insert {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--vscode-panel-border, rgba(127, 127, 127, 0.5));
+  border-radius: 50%;
+  background: var(--vscode-editorWidget-background, #252526);
+  color: var(--vscode-foreground, #cccccc);
+  opacity: 0.55; /* the buttons only exist while a table is hovered, so this is the reveal */
+  cursor: pointer;
+  transition: opacity 0.1s ease, background 0.1s ease;
+}
+.omd-tbl-insert .codicon {
+  font-size: 11px;
+}
+.omd-tbl-insert:hover {
+  opacity: 1;
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+.omd-tbl-dropline {
+  position: absolute;
+  z-index: 25;
+  background: var(--vscode-focusBorder, #4daafc);
+  border-radius: 1px;
+  pointer-events: none;
+}
+/* Sort toggle riding on a column handle: hidden until the bar is hovered, unless this column is
+   the active sort (then its direction arrow stays visible). */
+.omd-tbl-sort {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: var(--omd-radius-control, 3px);
+  background: transparent;
+  color: var(--vscode-foreground, #cccccc);
+  opacity: 0.6; /* visible whenever the bar is shown, not only on hover */
+  cursor: pointer;
+  transition: opacity 0.1s ease, background 0.1s ease;
+}
+.omd-tbl-sort .codicon {
+  font-size: 14px;
+}
+.omd-tbl-handle--col:hover .omd-tbl-sort {
+  opacity: 0.9;
+}
+.omd-tbl-sort:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.3));
+}
+.omd-tbl-sort--active {
+  opacity: 1;
+  color: var(--vscode-focusBorder, #4daafc);
+}
+
+/* Sized image (plugins/media): the image plus drag-resize handles and a stock-size toolbar,
+   revealed on hover. Width is the only editable state; everything here is chrome. */
+.omd-img {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+}
+/* A non-sizable image (a thumbnail inside a gallery/youtube block, a linked image) keeps no
+   chrome, so its wrapper must be transparent to layout — otherwise the inline-block box shrinks to
+   the image's natural width and breaks the gallery grid / any width styling the container applies. */
+.omd-img:not(.omd-img--sizable) {
+  display: contents;
+}
+/* The image box that the resize handles anchor to (kept separate from the caption below). */
+.omd-img-frame {
+  position: relative;
+  display: block;
+  line-height: 0;
+}
+.omd-img-caption {
+  display: none;
+  margin-top: 4px;
+  font-size: 0.85em;
+  line-height: 1.4;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  text-align: center;
+  outline: none;
+}
+.omd-img--captioned .omd-img-caption {
+  display: block;
+}
+/* An image whose file failed to load: hide the browser's generic broken-image glyph and show a
+   clean placeholder in its place — a media icon + the alt text (or "Image not found") in a dashed
+   box, with the "Image not found: …" tooltip the NodeView sets. */
+.omd-img-broken-box {
+  display: none;
+}
+/* Two-class specificity so this beats the later `.omd-img img { display: block }` rule (and the
+   gallery variant covers a broken thumbnail, whose wrapper isn't an `.omd-img`). */
+.omd-img.omd-img--broken img,
+.omd-gallery-item.omd-img--broken img {
+  display: none;
+}
+.omd-img--broken .omd-img-broken-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 10px 14px;
+  line-height: 1.3;
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  border: 1px dashed var(--vscode-editorError-foreground, #f14c4c);
+  border-radius: var(--omd-radius-control);
+  background: color-mix(in srgb, var(--vscode-editorError-foreground, #f14c4c) 8%, transparent);
+}
+.omd-img-broken-box .codicon {
+  flex: none;
+  font-size: 18px;
+  color: var(--vscode-editorError-foreground, #f14c4c);
+}
+.omd-img-broken-label {
+  white-space: normal;
+  word-break: break-word;
+}
+/* In a gallery cell the placeholder fills the cell rather than forcing a min width. */
+.omd-gallery-item.omd-img--broken .omd-img-broken-box {
+  width: 100%;
+  box-sizing: border-box;
+}
+.omd-img-caption--editing {
+  display: block;
+  min-width: 3ch;
+  border-bottom: 1px dashed var(--vscode-focusBorder, #4daafc);
+}
+.omd-img img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--omd-radius-panel, 4px);
+}
+.ProseMirror-selectednode.omd-img {
+  outline: 2px solid var(--vscode-focusBorder, #4daafc);
+  outline-offset: 2px;
+}
+.omd-img-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--vscode-focusBorder, #4daafc);
+  border: 1px solid var(--vscode-editor-background, #1e1e1e);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.omd-img--sizable:hover .omd-img-handle,
+.omd-img--resizing .omd-img-handle {
+  opacity: 0.95;
+}
+.omd-img-handle--nw {
+  top: -5px;
+  left: -5px;
+  cursor: nwse-resize;
+}
+.omd-img-handle--ne {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+}
+.omd-img-handle--sw {
+  bottom: -5px;
+  left: -5px;
+  cursor: nesw-resize;
+}
+.omd-img-handle--se {
+  bottom: -5px;
+  right: -5px;
+  cursor: nwse-resize;
+}
+.omd-img-toolbar {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  line-height: 1;
+  background: var(--vscode-editorWidget-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: var(--omd-radius-control, 3px);
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.omd-img--sizable:hover .omd-img-toolbar,
+.omd-img--resizing .omd-img-toolbar {
+  opacity: 1;
+}
+.omd-img-size {
+  padding: 1px 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--vscode-foreground, #ccc);
+  background: transparent;
+  border: none;
+  border-radius: var(--omd-radius-control, 3px);
+  cursor: pointer;
+}
+.omd-img-size:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.25));
+}
+.omd-img-readout {
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid var(--vscode-panel-border, #2b2b2b);
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+}
+.omd-img-toolsep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 2px;
+  background: var(--vscode-panel-border, #2b2b2b);
+}
+.omd-img-align {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  color: var(--vscode-foreground, #ccc);
+  background: transparent;
+  border: none;
+  border-radius: var(--omd-radius-control, 3px);
+  cursor: pointer;
+}
+.omd-img-align .codicon {
+  font-size: 12px;
+}
+.omd-img-align:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.25));
+}
+.omd-img-align--active {
+  color: var(--vscode-focusBorder, #4daafc);
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.2));
+}
+
+/* YouTube block: a resizable thumbnail "player" with a play badge, using the shared media chrome.
+   The GitHub-visible linked-thumbnail body is kept but hidden in the editor. The block sizes to
+   the video (decoration tight around it) and defaults to Large, centred. */
+/* Specificity kept above the base `.omd-prose .omd-smart-block` rule so the auto-centering wins. */
+.omd-prose .omd-smart-block.omd-block--youtube {
+  width: 640px; /* default = Large; an explicit width param overrides via inline style */
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* When wrapped for alignment, let the aligned flexbox place it (drop the auto-centering). */
+.omd-aligned .omd-smart-block.omd-block--youtube {
+  margin-left: 0;
+  margin-right: 0;
+}
+.omd-block--youtube .omd-yt-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  line-height: 0;
+}
+.omd-block--youtube .omd-yt-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--omd-radius-panel, 4px);
+  background: var(--vscode-editorWidget-background, #252526);
+}
+.omd-block--youtube .omd-yt-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 38px;
+  border-radius: 8px;
+  background: rgba(18, 18, 18, 0.72);
+  pointer-events: none;
+}
+.omd-block--youtube .omd-yt-play::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-40%, -50%);
+  border-style: solid;
+  border-width: 9px 0 9px 15px;
+  border-color: transparent transparent transparent #fff;
+}
+.omd-block--youtube .omd-yt-body {
+  display: none;
+}
+
+/* Link card (plugins/shortcode/view.ts buildLinkcard): a preview drawn from cached OG params
+   over a hidden `[title](url)` body that is what GitHub shows and what round-trips. */
+.omd-block--linkcard .omd-linkcard-body {
+  display: none;
+}
+.omd-linkcard-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+/* The card is an <a>, so the editor's `.omd-prose a` link colour would tint every text row blue
+   (low contrast in dark mode). The compound selector out-specifies it: the card uses plain
+   foreground and the whole card, not the text, signals it's a link. */
+.omd-prose a.omd-linkcard,
+.omd-linkcard {
+  display: flex;
+  align-items: stretch;
+  gap: var(--omd-space-3);
+  text-decoration: none;
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-widget-border, rgba(127, 127, 127, 0.25));
+  border-radius: var(--omd-radius-md, 6px);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.06));
+}
+.omd-linkcard:hover {
+  border-color: var(--vscode-focusBorder, #4daafc);
+}
+.omd-linkcard-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--omd-space-3);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.omd-linkcard-title {
+  font-weight: 600;
+  /* Plain foreground, not link-blue — the whole card is the link, so the title reads as a
+     heading and stays high-contrast in dark mode. */
+  color: var(--vscode-foreground);
+  /* clamp to two lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.omd-linkcard-desc {
+  font-size: 0.9em;
+  opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.omd-linkcard-site {
+  font-size: 0.8em;
+  opacity: 0.6;
+  margin-top: auto;
+}
+.omd-linkcard-image {
+  order: -1; /* thumbnail on the left, ahead of the text column */
+  flex: 0 0 auto;
+  width: 30%;
+  max-width: 12rem;
+  object-fit: cover;
+  align-self: stretch;
+}
+.omd-block--linkcard[data-loading='true'] .omd-linkcard {
+  opacity: 0.6;
+}
+
+/* AI block (plugins/shortcode/view.ts buildAi): a Result/Prompt tab pair (like chart's Chart/Data).
+   The cached generated markdown (the GitHub-visible body that round-trips) shows by default; the
+   Prompt tab holds the prompt, context, and model picker. Nothing runs on load. */
+/* No margin-left:auto here — the tabs (.omd-block-tabs) already carry it, which right-clusters the
+   tabs *and* these actions. A second auto margin would split the free space and center the tabs. */
+.omd-ai-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+/* Tab visibility is driven entirely by data-mode, so switching never mutates the editable body. */
+.omd-block--ai[data-mode='result'] .omd-ai-prompt-panel {
+  display: none;
+}
+.omd-block--ai[data-mode='prompt'] .omd-ai-result {
+  display: none;
+}
+.omd-ai-prompt-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--omd-space-2);
+  padding: var(--omd-space-3);
+  margin: var(--omd-space-2) 0;
+  border: 1px solid var(--vscode-widget-border, rgba(127, 127, 127, 0.25));
+  border-radius: var(--omd-radius-md, 6px);
+}
+/* The prompt field spans the row and stacks its label above, unlike the inline scope/model rows. */
+.omd-ai-prompt-panel .omd-field {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--omd-space-1);
+}
+.omd-ai-prompt-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.9em;
+  color: var(--vscode-input-foreground, inherit);
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.1));
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: var(--omd-radius-control);
+  padding: 6px 8px;
+  outline: none;
+  resize: vertical;
+}
+.omd-ai-prompt-input:focus {
+  border-color: var(--vscode-focusBorder, #4daafc);
+}
+.omd-ai-model-host {
+  display: inline-flex;
+}
+/* The live token stream while a run is in flight; cleared when the result lands in the body. */
+.omd-ai-stream {
+  white-space: pre-wrap;
+  opacity: 0.8;
+  margin: var(--omd-space-2) 0;
+}
+.omd-ai-stream:empty {
+  display: none;
+}
+.omd-ai-empty {
+  padding: var(--omd-space-3);
+  opacity: 0.6;
+  font-style: italic;
+}
+.omd-block--ai[data-loading='true'] .omd-ai-body {
+  opacity: 0.5;
+}
+.omd-ai-error {
+  color: var(--vscode-editorError-foreground, #f14c4c);
+  font-size: 0.9em;
+  white-space: pre-wrap;
+}
+
+/* YAML front matter block (plugins/frontmatter): a labelled, monospace, read-at-a-glance
+   header over the raw YAML; the gear opens the property panel. */
+.omd-frontmatter {
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: var(--omd-radius-panel);
+  margin: 0 0 var(--omd-space-4) 0;
+  overflow: hidden;
+  background: var(--vscode-editor-background, #1e1e1e);
+}
+/* Invalid YAML: tint the block and show an inline error banner (Problems-panel replacement). */
+.omd-frontmatter--error {
+  border-color: var(--vscode-editorError-foreground, #f14c4c);
+}
+.omd-frontmatter-error {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  padding: var(--omd-space-2) var(--omd-space-3);
+  color: var(--vscode-editorError-foreground, #f14c4c);
+  background: color-mix(in srgb, var(--vscode-editorError-foreground, #f14c4c) 10%, transparent);
+  font-size: 0.9em;
+}
+/* Fields mode: the inline property inspector — same aligned label/control grid as the
+   floating param panel (ui/param-panel), just docked in the block body. */
+.omd-frontmatter-form {
+  padding: var(--omd-space-3);
+  display: grid;
+  grid-template-columns: max-content auto;
+  justify-content: start;
+  align-items: center;
+  column-gap: var(--omd-space-3);
+  row-gap: var(--omd-space-1);
+}
+.omd-frontmatter-form .omd-field {
+  display: contents;
+}
+.omd-frontmatter-readonly {
+  font-size: 0.85em;
+  opacity: 0.6;
+}
+/* Source mode: the raw YAML, editable. */
+.omd-frontmatter-source {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  resize: vertical;
+  padding: var(--omd-space-2) var(--omd-space-3);
+  color: var(--vscode-editor-foreground, #d4d4d4);
+  background: transparent;
+  font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+  font-size: 0.85em;
+  outline: none;
+}
+
+/* The raw `[!NOTE]` marker is machinery — hidden while writing, kept on disk. */
+.omd-callout-marker {
+  display: none;
+}
+
+/*
+ * Smart-block chrome (ctx/STYLE.md): a header bar (icon + name left, actions right,
+ * Preview/Source tabs) above a contenteditable:false surface, rounded 6px.
+ */
+.omd-prose .omd-smart-block {
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: var(--omd-radius-panel);
+  margin: 0 0 var(--omd-space-4) 0;
+  overflow: hidden;
+  background: var(--vscode-editor-background, #1e1e1e);
+}
+.omd-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--omd-space-2);
+  padding: var(--omd-space-1) var(--omd-space-2);
+  background: var(--vscode-sideBar-background, rgba(127, 127, 127, 0.06));
+  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+  user-select: none;
+}
+.omd-block-name {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+.omd-block-tabs {
+  display: flex;
+  gap: 2px;
+}
+.omd-block-tab {
+  font: inherit;
+  font-size: 0.8em;
+  color: inherit;
+  background: transparent;
+  border: none;
+  padding: var(--omd-space-1) var(--omd-space-2);
+  border-radius: var(--omd-radius-control);
+  cursor: pointer;
+  opacity: 0.7;
+}
+.omd-block-tab:hover {
+  background: var(--vscode-list-hoverBackground, rgba(127, 127, 127, 0.12));
+  opacity: 1;
+}
+.omd-block-tab--active {
+  background: var(--vscode-button-secondaryBackground, rgba(127, 127, 127, 0.2));
+  opacity: 1;
+}
+.omd-block-body {
+  padding: 0;
+}
+/* Sandboxed-block trust badge — a quiet shield in the header (ctx/SMART-BLOCKS.md). */
+.omd-block-shield {
+  font-size: 13px;
+  opacity: 0.75;
+  color: var(--vscode-charts-yellow, #d29922);
+}
+/* A container block's editable body: real markdown, padded like the writing surface. */
+.omd-block-content {
+  padding: var(--omd-space-2) var(--omd-space-4);
+}
+.omd-block-content > *:last-child {
+  margin-bottom: 0;
+}
+/* A leaf block: the block name until a trust tier renders real output, then the output. */
+.omd-block-leaf-body {
+  padding: var(--omd-space-3) var(--omd-space-4);
+  opacity: 0.7;
+  font-style: italic;
+}
+.omd-block-leaf-body--rendered {
+  opacity: 1;
+  font-style: normal;
+}
+.omd-block-date {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+}
+/*
+ * The outline sidebar (left, 260px). Backlinks live here now; the document outline joins the
+ * same panel in P8, which is why it is built as titled sections.
+ */
+.omd-outline-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 260px;
+  height: 100%;
+  display: none;
+  flex-direction: column;
+  background: var(--vscode-sideBar-background, #181818);
+  border-right: 1px solid var(--vscode-panel-border, #2b2b2b);
+  overflow-y: auto;
+  z-index: 15;
+}
+.omd-outline-panel--visible {
+  display: flex;
+}
+body.omd-has-outline #omd-root {
+  margin-left: 260px;
+}
+.omd-outline-panel {
+  transition: transform 0.15s ease;
+}
+/* Collapsed: slide the panel out and reclaim the margin. */
+body.omd-collapse-outline .omd-outline-panel {
+  transform: translateX(-100%);
+}
+body.omd-collapse-outline #omd-root {
+  margin-left: 0;
+}
+
+/*
+ * Per-side toggles — a quiet edge affordance (Principle 6). Present only when the side has
+ * content; the icon flips to a chevron-ish hint via title, not extra chrome.
+ */
+.omd-panel-toggle {
+  position: fixed;
+  top: var(--omd-space-2);
+  z-index: 25;
+  display: none;
+  border: none;
+  background: var(--vscode-editorWidget-background, #252526);
+  color: var(--vscode-foreground, #ccc);
+  border-radius: var(--omd-radius-control);
+  padding: 4px 6px;
+  cursor: pointer;
+  opacity: 0.5;
+}
+.omd-panel-toggle:hover {
+  opacity: 1;
+}
+.omd-panel-toggle--left {
+  left: var(--omd-space-2);
+}
+.omd-panel-toggle--right {
+  right: var(--omd-space-2);
+}
+body.omd-has-outline .omd-panel-toggle--left,
+body.omd-has-threads .omd-panel-toggle--right {
+  display: block;
+}
+/* Contents grows to fill; Backlinks is capped at ~half the panel (ctx/PLAN P8). */
+.omd-outline-contents {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.omd-outline-backlinks {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 50%;
+  border-top: 1px solid var(--vscode-panel-border, #2b2b2b);
+}
+.omd-outline-head {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  padding: var(--omd-space-2) var(--omd-space-3);
+  font-weight: 600;
+  font-size: 0.72em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  user-select: none;
+}
+.omd-outline-body {
+  padding: var(--omd-space-1) var(--omd-space-2) var(--omd-space-2);
+  overflow-y: auto;
+  min-height: 0;
+}
+/* One heading per row, indented by depth; the active file's own outline. */
+.omd-outline-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.85em;
+  color: var(--vscode-foreground, #ccc);
+  background: transparent;
+  border: none;
+  border-radius: var(--omd-radius-control);
+  padding: 3px 6px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.omd-outline-item:hover {
+  background: var(--vscode-list-hoverBackground, rgba(127, 127, 127, 0.12));
+}
+.omd-backlink {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: var(--omd-radius-control);
+  padding: var(--omd-space-1) var(--omd-space-2);
+  cursor: pointer;
+}
+.omd-backlink:hover {
+  background: var(--vscode-list-hoverBackground, rgba(127, 127, 127, 0.12));
+}
+.omd-backlink-title {
+  display: block;
+  font-size: 0.85em;
+  color: var(--vscode-textLink-foreground, #4daafc);
+}
+.omd-backlink-label {
+  display: block;
+  font-size: 0.75em;
+  opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The one thread panel — a single 300px right sidebar (ctx/STYLE.md). It only appears when
+ * the document actually has threads, and the writing surface shifts to make room.
+ */
+.omd-thread-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  display: none;
+  flex-direction: column;
+  background: var(--vscode-sideBar-background, #181818);
+  border-left: 1px solid var(--vscode-panel-border, #2b2b2b);
+  overflow-y: auto;
+  z-index: 15;
+}
+.omd-thread-panel--visible {
+  display: flex;
+}
+body.omd-has-threads #omd-root {
+  margin-right: 300px;
+}
+.omd-thread-panel {
+  transition: transform 0.15s ease;
+}
+body.omd-collapse-comments .omd-thread-panel {
+  transform: translateX(100%);
+}
+body.omd-collapse-comments #omd-root {
+  margin-right: 0;
+}
+.omd-thread-panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  padding: var(--omd-space-3);
+  font-weight: 600;
+  font-size: 0.85em;
+  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+  position: sticky;
+  top: 0;
+  background: inherit;
+}
+.omd-thread-list {
+  padding: var(--omd-space-2);
+}
+.omd-thread {
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: var(--omd-radius-card);
+  padding: var(--omd-space-2);
+  margin-bottom: var(--omd-space-2);
+  background: var(--vscode-editor-background, #1e1e1e);
+  cursor: pointer; /* the whole card jumps to the commented text (thread → doc, #6) */
+}
+.omd-thread:hover {
+  border-color: color-mix(in srgb, var(--vscode-focusBorder, #4daafc) 45%, var(--vscode-panel-border, #2b2b2b));
+}
+.omd-thread--active {
+  border-color: var(--vscode-focusBorder, #4daafc);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder, #4daafc);
+}
+.omd-thread--resolved {
+  opacity: 0.6;
+}
+.omd-thread-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--omd-space-1);
+}
+.omd-thread-jump {
+  font: inherit;
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: inherit;
+  opacity: 0.6;
+}
+.omd-thread:hover .omd-thread-jump {
+  opacity: 1;
+}
+.omd-thread-action {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--omd-radius-control);
+}
+.omd-thread-action:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.2));
+}
+.omd-thread-comment {
+  padding: var(--omd-space-1) 0;
+}
+.omd-thread-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+.omd-thread-author {
+  font-weight: 600;
+}
+.omd-thread-body {
+  font-size: 0.85em;
+  margin: 2px 0 4px;
+  white-space: pre-wrap;
+}
+.omd-thread-reactions {
+  display: flex;
+  gap: 4px;
+}
+.omd-reaction {
+  font: inherit;
+  font-size: 0.75em;
+  background: var(--vscode-textCodeBlock-background, rgba(255, 255, 255, 0.06));
+  border: 1px solid transparent;
+  border-radius: var(--omd-radius-pill);
+  padding: 0 6px;
+  cursor: pointer;
+  color: inherit;
+}
+.omd-reaction--mine {
+  border-color: var(--vscode-focusBorder, #4daafc);
+}
+.omd-thread-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.85em;
+  margin-top: var(--omd-space-1);
+  color: var(--vscode-input-foreground, inherit);
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.1));
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: var(--omd-radius-control);
+  padding: 4px 6px;
+  outline: none;
+}
+.omd-thread-input:focus {
+  border-color: var(--vscode-focusBorder, #4daafc);
+}
+
+/* Selection action buttons (add-comment / revise-with-AI): accent-filled pills that follow the
+   selection so they read as clear, tappable actions. Monochrome codicons — chrome, not content
+   (docs/design/STYLE.md). Both are styled identically; ui/revise-marker offsets the second. */
+.omd-comment-marker,
+.omd-revise-marker {
+  position: fixed;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  color: var(--vscode-button-foreground, #ffffff);
+  background: var(--vscode-button-background, #0e639c);
+  border-radius: var(--omd-radius-pill);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+.omd-comment-marker:hover,
+.omd-revise-marker:hover {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+.omd-comment-marker .codicon,
+.omd-revise-marker .codicon {
+  font-size: 14px;
+}
+
+/* Inline-revision diff (plugins/revise): the original struck through, the streamed rewrite shown
+   right after it, with Stop / Accept / Reject controls. Decoration-only — the doc is untouched
+   until Accept. Theme-var colours (the 5 GitHub alert accents are the only hardcoded ones). */
+.omd-revise-old {
+  text-decoration: line-through;
+  text-decoration-color: var(--vscode-editorError-foreground, #f14c4c);
+  opacity: 0.6;
+}
+.omd-revise-widget {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--omd-space-2);
+  margin: 0 4px;
+  padding: 1px 4px 1px 6px;
+  border-radius: var(--omd-radius-md, 6px);
+  background: color-mix(in srgb, var(--vscode-charts-green, #4ac26b) 14%, transparent);
+  vertical-align: baseline;
+}
+.omd-revise-new {
+  color: var(--vscode-foreground);
+}
+.omd-revise--streaming .omd-revise-new::after {
+  content: '▍';
+  opacity: 0.5;
+  animation: omd-revise-blink 1s steps(2) infinite;
+}
+@keyframes omd-revise-blink {
+  50% {
+    opacity: 0;
+  }
+}
+.omd-revise-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+.omd-revise-btn {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: inherit;
+  border-radius: var(--omd-radius-control);
+  padding: 2px;
+  cursor: pointer;
+  opacity: 0.8;
+}
+.omd-revise-btn:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15));
+}
+.omd-revise-btn[title='Accept']:hover {
+  color: var(--vscode-charts-green, #4ac26b);
+}
+.omd-revise--error .omd-revise-widget,
+.omd-revise-widget.omd-revise--error {
+  background: color-mix(in srgb, var(--vscode-editorError-foreground, #f14c4c) 12%, transparent);
+}
+.omd-revise-error {
+  color: var(--vscode-editorError-foreground, #f14c4c);
+  font-size: 0.9em;
+}
+
+/* Inline references. The `[[`, `|target` and `]]` are machinery; the label reads as a link. */
+.omd-ref-machinery {
+  display: none;
+}
+.omd-wikilink {
+  color: var(--vscode-textLink-foreground, #4daafc);
+  border-bottom: 1px dashed currentColor;
+  cursor: pointer;
+}
+.omd-wikilink:hover {
+  border-bottom-style: solid;
+}
+/* Mentions and issues are real links already — these are just chips. */
+.omd-mention,
+.omd-issue {
+  background: var(--vscode-textCodeBlock-background, rgba(255, 255, 255, 0.06));
+  border-radius: var(--omd-radius-pill);
+  padding: 1px 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* A link whose target the host reported missing: a red wavy underline where it sits, with the
+   "Linked file not found: …" message on hover (the reveal a Problems-panel click can't deliver
+   into a custom editor). */
+.omd-link-broken {
+  text-decoration: underline wavy var(--vscode-editorError-foreground, #f14c4c);
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+}
+/* A link warning (empty target, or an anchor matching no heading) — amber, distinct from the
+   red broken-file error. The inline replacement for the Problems panel. */
+.omd-link-warning {
+  text-decoration: underline wavy var(--vscode-editorWarning-foreground, #cca700);
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+}
+
+/* Document-issues chip (ui/problems-chip.ts): the aggregate problems view, pinned to the far right
+   of the toolbar bar (absolute, out of the wrapping flex flow so it never bumps to a second row). */
+.omd-problems-chip {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  border: 1px solid var(--vscode-widget-border, rgba(127, 127, 127, 0.25));
+  border-radius: var(--omd-radius-pill);
+  background: transparent;
+  color: var(--vscode-editorWarning-foreground, #cca700);
+  cursor: pointer;
+}
+.omd-problems-chip:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.12));
+}
+.omd-problems-chip--error {
+  color: var(--vscode-editorError-foreground, #f14c4c);
+}
+.omd-problems-chip--clean {
+  color: var(--vscode-descriptionForeground, #8b949e);
+  opacity: 0.55;
+}
+.omd-problems-chip .codicon {
+  font-size: 13px;
+}
+.omd-problems-list {
+  position: fixed;
+  z-index: 40;
+  max-width: min(28rem, 90vw);
+  max-height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+  border: 1px solid var(--vscode-widget-border, rgba(127, 127, 127, 0.25));
+  border-radius: var(--omd-radius-md, 6px);
+  background: var(--vscode-editorWidget-background, #252526);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.36);
+}
+.omd-problems-item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border-radius: var(--omd-radius-control);
+  font-size: 0.85em;
+}
+.omd-problems-item:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15));
+}
+/* The jump-to-problem button fills the row; the optional Fix button sits at its right. */
+.omd-problems-jump {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--omd-radius-control);
+}
+.omd-problems-fix {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-right: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: var(--omd-radius-control);
+  background: var(--vscode-button-secondaryBackground, rgba(127, 127, 127, 0.2));
+  color: var(--vscode-button-secondaryForeground, inherit);
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.omd-problems-fix:hover {
+  background: var(--vscode-button-secondaryHoverBackground, rgba(127, 127, 127, 0.32));
+}
+.omd-problems-item .codicon {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.omd-problems-item--error .codicon {
+  color: var(--vscode-editorError-foreground, #f14c4c);
+}
+.omd-problems-item--warning .codicon {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+/* Brief highlight when jumping to a problem. */
+.omd-problem-flash {
+  animation: omd-problem-flash 1.2s ease-out;
+}
+@keyframes omd-problem-flash {
+  0%, 30% { background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 35%, transparent); }
+  100% { background: transparent; }
+}
+
+/* Comment anchors are machinery — hidden while writing, kept on disk (ctx/FORMATS.md). */
+.omd-comment-anchor {
+  display: none;
+}
+/* The region a thread refers to, marked the way a highlighter would. */
+.omd-comment-highlight {
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #d29922) 22%, transparent);
+  border-bottom: 1px solid var(--vscode-editorWarning-foreground, #d29922);
+  cursor: pointer;
+}
+/* The commented span whose thread is currently focused (#6). */
+.omd-comment-highlight--active {
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #d29922) 42%, transparent);
+}
+
+/* The chart block: a rendered chart over its editable data table. Which one shows is a
+   wrapper attribute, never a mutation of the content (that would make PM redraw). */
+.omd-chart-preview {
+  position: relative;
+  height: 320px;
+  padding: var(--omd-space-3);
+}
+.omd-block--chart[data-mode='preview'] .omd-chart-data {
+  display: none;
+}
+.omd-block--chart[data-mode='data'] .omd-chart-preview {
+  display: none;
+}
+.omd-chart-empty {
+  opacity: 0.5;
+  font-style: italic;
+  padding: var(--omd-space-4);
+  text-align: center;
+}
+
+/*
+ * Media blocks style the body's *real* markdown rather than replacing it: the thumbnail and
+ * the gallery images are the same nodes GitHub renders (ctx/FORMATS.md), so nothing is
+ * duplicated and the body stays the source of truth.
+ */
+.omd-block--youtube .omd-block-content {
+  padding: 0;
+  position: relative;
+}
+.omd-block--youtube .omd-block-content p {
+  margin: 0;
+  line-height: 0;
+}
+/* `:not(.ProseMirror-separator)` matters: ProseMirror inserts its own zero-content <img>
+   after an inline leaf, and a bare `img` rule would size that too — doubling the height. */
+.omd-block--youtube .omd-block-content img:not(.ProseMirror-separator) {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  aspect-ratio: 16 / 9;
+}
+/* The play badge is chrome drawn over the thumbnail, not content. */
+.omd-block--youtube .omd-block-content::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 56px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+.omd-block--youtube .omd-block-content::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  transform: translate(-40%, -50%);
+  border-style: solid;
+  border-width: 9px 0 9px 15px;
+  border-color: transparent transparent transparent #fff;
+  pointer-events: none;
+}
+
+.omd-block--gallery .omd-block-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--omd-space-2);
+}
+/* A fixed `columns` param overrides the auto-fill grid. */
+.omd-block--gallery[data-columns='2'] .omd-block-content {
+  grid-template-columns: repeat(2, 1fr);
+}
+.omd-block--gallery[data-columns='3'] .omd-block-content {
+  grid-template-columns: repeat(3, 1fr);
+}
+.omd-block--gallery[data-columns='4'] .omd-block-content {
+  grid-template-columns: repeat(4, 1fr);
+}
+/* Images are grouped one-or-more per markdown paragraph; make the paragraph transparent so each
+   image is a grid cell directly. Otherwise a 2-images-per-paragraph gallery stacks two images
+   inside one cell (no gap between them) while the grid gap only shows between paragraphs — the
+   "no row gap, big column gap" bug. Any non-image child (a ProseMirror break/separator) is hidden
+   so it doesn't claim a grid cell. */
+.omd-block--gallery .omd-block-content > p {
+  display: contents;
+}
+.omd-block--gallery .omd-block-content > p > :not(.omd-gallery-item) {
+  display: none;
+}
+.omd-block--gallery .omd-block-content img:not(.ProseMirror-separator) {
+  width: 100%;
+  display: block;
+  border-radius: var(--omd-radius-control);
+  /* Show the whole image (don't crop) — a square logo keeps its rounded corners; off-ratio images
+     letterbox against a subtle fill rather than being cropped to 4/3. */
+  object-fit: contain;
+  aspect-ratio: 4 / 3;
+  background: var(--vscode-editorWidget-background, rgba(127, 127, 127, 0.08));
+}
+/* Keep PM's internal separator/break from taking up a grid cell. */
+.omd-block--gallery .omd-block-content img.ProseMirror-separator,
+.omd-block--youtube .omd-block-content img.ProseMirror-separator {
+  display: none;
+}
+/* Each gallery thumbnail fills its cell and hosts a hover remove button. */
+.omd-block--gallery .omd-gallery-item {
+  position: relative;
+  display: block;
+  width: 100%;
+  line-height: 0;
+}
+.omd-gallery-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: #fff;
+  background: rgba(18, 18, 18, 0.66);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s ease, background 0.1s ease;
+}
+.omd-gallery-remove .codicon {
+  font-size: 13px;
+}
+.omd-gallery-item:hover .omd-gallery-remove {
+  opacity: 0.9;
+}
+.omd-gallery-remove:hover {
+  opacity: 1;
+  background: var(--vscode-inputValidation-errorBackground, #a1260d);
+}
+/* The "Add image" footer below the grid. */
+.omd-gallery-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--omd-space-1);
+  width: calc(100% - 2 * var(--omd-space-2));
+  margin: var(--omd-space-2);
+  padding: var(--omd-space-2);
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  background: transparent;
+  border: 1px dashed var(--vscode-panel-border, #3a3a3a);
+  border-radius: var(--omd-radius-control, 3px);
+  cursor: pointer;
+}
+.omd-gallery-add:hover {
+  color: var(--vscode-foreground, #ccc);
+  border-color: var(--vscode-focusBorder, #4daafc);
+}
+
+/* Tabs: a strip of labels above one visible panel. Which panel shows is selected by
+   `data-active` on the wrapper plus nth-child, so the panels themselves are never mutated
+   (mutating content makes ProseMirror redraw the NodeView). */
+.omd-tabs {
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: var(--omd-radius-card);
+  margin: 0 0 var(--omd-space-4) 0;
+  overflow: hidden;
+}
+.omd-tabs-strip {
+  display: flex;
+  gap: 2px;
+  padding: var(--omd-space-1) var(--omd-space-1) 0;
+  background: var(--vscode-sideBar-background, rgba(127, 127, 127, 0.06));
+  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+  user-select: none;
+}
+.omd-tab {
+  font: inherit;
+  font-size: 0.85em;
+  color: inherit;
+  background: transparent;
+  border: none;
+  padding: var(--omd-space-1) var(--omd-space-3);
+  border-radius: var(--omd-radius-control) var(--omd-radius-control) 0 0;
+  cursor: pointer;
+  opacity: 0.65;
+}
+.omd-tab--editing {
+  outline: 1px solid var(--vscode-focusBorder, #4daafc);
+  cursor: text;
+  opacity: 1;
+}
+.omd-tab:hover {
+  background: var(--vscode-list-hoverBackground, rgba(127, 127, 127, 0.12));
+  opacity: 1;
+}
+.omd-tab--active {
+  background: var(--vscode-editor-background, #1e1e1e);
+  opacity: 1;
+  font-weight: 600;
+}
+.omd-tab-panel {
+  padding: var(--omd-space-3) var(--omd-space-4);
+}
+.omd-tab-panel > *:last-child {
+  margin-bottom: 0;
+}
+/* Only the active panel is shown; ten is well past any sane tab count. */
+.omd-tabs-body > * {
+  display: none;
+}
+.omd-tabs[data-active='0'] > .omd-tabs-body > *:nth-child(1),
+.omd-tabs[data-active='1'] > .omd-tabs-body > *:nth-child(2),
+.omd-tabs[data-active='2'] > .omd-tabs-body > *:nth-child(3),
+.omd-tabs[data-active='3'] > .omd-tabs-body > *:nth-child(4),
+.omd-tabs[data-active='4'] > .omd-tabs-body > *:nth-child(5),
+.omd-tabs[data-active='5'] > .omd-tabs-body > *:nth-child(6),
+.omd-tabs[data-active='6'] > .omd-tabs-body > *:nth-child(7),
+.omd-tabs[data-active='7'] > .omd-tabs-body > *:nth-child(8),
+.omd-tabs[data-active='8'] > .omd-tabs-body > *:nth-child(9),
+.omd-tabs[data-active='9'] > .omd-tabs-body > *:nth-child(10) {
+  display: block;
+}
+
+/* Footnotes are native GFM; OMD only styles them — reference as a superscript marker,
+   definitions filed at the foot of the document behind a rule. */
+.omd-prose [data-type='footnote_reference'],
+.omd-prose sup {
+  font-size: 0.75em;
+  vertical-align: super;
+  line-height: 0;
+}
+/* Semantic inline HTML marks (inline-marks plugin) — GitHub-rendered, so styled to match. */
+.omd-prose kbd {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.85em;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--vscode-panel-border, #3a3a3a);
+  border-bottom-width: 2px;
+  border-radius: var(--omd-radius-control);
+  background: var(--vscode-textCodeBlock-background, rgba(255, 255, 255, 0.06));
+}
+.omd-prose mark {
+  background: var(--vscode-editor-findMatchHighlightBackground, rgba(255, 213, 0, 0.35));
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 0.15em;
+}
+.omd-prose samp {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.9em;
+}
+.omd-prose var,
+.omd-prose cite {
+  font-style: italic;
+}
+.omd-prose small {
+  font-size: 0.85em;
+}
+/* Only the footnote marker is link-coloured; a plain <sup> mark stays body-coloured. */
+.omd-prose [data-type='footnote_reference'] {
+  color: var(--vscode-textLink-foreground, #4daafc);
+}
+.omd-prose .footnote-definition,
+.omd-prose [data-type='footnote_definition'] {
+  font-size: 0.9em;
+  opacity: 0.85;
+  padding-left: var(--omd-space-3);
+  border-left: 2px solid var(--vscode-panel-border, #2b2b2b);
+  margin-bottom: var(--omd-space-2);
+}
+
+/* `2col`/`3col`: real columns in the editor; a plain HTML table everywhere else. */
+.omd-columns {
+  display: flex;
+  gap: var(--omd-space-4);
+  align-items: flex-start;
+  margin: 0 0 var(--omd-space-4) 0;
+}
+.omd-column {
+  flex: 1 1 0;
+  min-width: 0;
+  /* A faint outline makes the two/three-column structure legible in the editor even when the
+     columns are empty — otherwise a freshly inserted block looks like a blank line and reads as
+     "nothing happened". GitHub renders the underlying table, not this chrome. */
+  min-height: 2.5em;
+  padding: var(--omd-space-2);
+  border: 1px dashed var(--vscode-panel-border, #3a3a3a);
+  border-radius: var(--omd-radius-control);
+}
+.omd-column > *:last-child {
+  margin-bottom: 0;
+}
+/* Prompt the reader to fill an empty column (targets ProseMirror's trailing-break paragraph). */
+.omd-column > p:only-child:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: 'Column';
+  opacity: 0.4;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .omd-columns {
+    flex-direction: column;
+  }
+}
+
+/* The native collapsible (`<details>`): a real fold, matching GitHub's behaviour. */
+.omd-details {
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: var(--omd-radius-card);
+  margin: 0 0 var(--omd-space-4) 0;
+  overflow: hidden;
+}
+.omd-details-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  padding: var(--omd-space-2) var(--omd-space-3);
+  background: var(--vscode-sideBar-background, rgba(127, 127, 127, 0.06));
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+.omd-details-summary:hover {
+  background: var(--vscode-list-hoverBackground, rgba(127, 127, 127, 0.12));
+}
+.omd-details-label--editing {
+  outline: 1px solid var(--vscode-focusBorder, #4daafc);
+  border-radius: var(--omd-radius-control);
+  padding: 0 3px;
+  cursor: text;
+  user-select: text;
+  font-weight: 400;
+}
+.omd-details-twisty {
+  transition: transform 0.12s;
+  font-size: 14px;
+}
+.omd-details--open .omd-details-twisty {
+  transform: rotate(90deg);
+}
+.omd-details-body {
+  padding: var(--omd-space-3) var(--omd-space-4);
+}
+/* Folded by default; the wrapper class reveals it (see the NodeView's `apply`). */
+.omd-details:not(.omd-details--open) .omd-details-body {
+  display: none;
+}
+.omd-details-body > *:last-child {
+  margin-bottom: 0;
+}
+
+/* The `date` block's native form: the bare `📅 YYYY-MM-DD` token, shown as a quiet chip. */
+.omd-date-chip {
+  background: var(--vscode-textCodeBlock-background, rgba(255, 255, 255, 0.06));
+  border-radius: var(--omd-radius-pill);
+  padding: 1px 8px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Emoji shortcode `:name:` rendered as its glyph (plugins/emoji-decoration.ts): the raw text is
+   collapsed to zero width and the emoji is drawn via ::before, so the shortcode stays on disk. */
+.omd-emoji {
+  font-size: 0;
+}
+.omd-emoji::before {
+  content: attr(data-emoji);
+  font-size: 1rem;
+  font-family: initial;
+}
+.omd-date-chip:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.12));
+}
+
+/* The calendar popover opened by clicking a date chip (plugins/date-token.ts). */
+.omd-date-picker {
+  z-index: 50;
+  width: 15rem;
+  padding: 6px;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background, #252526));
+  color: var(--vscode-editorWidget-foreground, var(--vscode-foreground, #ccc));
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-widget-border, rgba(255, 255, 255, 0.12)));
+  border-radius: var(--omd-radius-md, 6px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.36);
+  font-size: 0.85em;
+  user-select: none;
+}
+.omd-date-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.omd-date-picker-label {
+  font-weight: 600;
+}
+.omd-date-picker-nav {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1.2em;
+  line-height: 1;
+  padding: 2px 8px;
+  border-radius: var(--omd-radius-sm, 4px);
+}
+.omd-date-picker-nav:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.12));
+}
+.omd-date-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  text-align: center;
+}
+.omd-date-picker-weekday {
+  opacity: 0.6;
+  font-size: 0.85em;
+  padding: 2px 0;
+}
+.omd-date-picker-day {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px 0;
+  border-radius: var(--omd-radius-sm, 4px);
+  font-variant-numeric: tabular-nums;
+}
+.omd-date-picker-day:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.12));
+}
+.omd-date-picker-day.is-today {
+  outline: 1px solid var(--vscode-focusBorder, #4daafc);
+  outline-offset: -1px;
+}
+.omd-date-picker-day.is-selected {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+}
+
+/* The `toc` block: a derived list of the document's headings, never serialized. */
+.omd-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.omd-toc-item {
+  margin: 2px 0;
+}
+.omd-toc-number {
+  opacity: 0.6;
+  margin-right: 2px;
+}
+.omd-toc-link {
+  color: var(--vscode-textLink-foreground, #4daafc);
+  text-decoration: none;
+  cursor: pointer;
+}
+.omd-toc-link:hover {
+  text-decoration: underline;
+}
+.omd-toc-empty {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* Image-alignment coexistence form: OMD aligns the content; GitHub renders the same div. */
+.omd-aligned {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 var(--omd-space-4) 0;
+}
+.omd-aligned > * {
+  margin-bottom: 0;
+}
+.omd-aligned--left {
+  align-items: flex-start;
+}
+.omd-aligned--center {
+  align-items: center;
+}
+.omd-aligned--right {
+  align-items: flex-end;
+}
+
+/* A sandboxed block's isolated frame — seamless, self-sizing, no chrome of its own. */
+.omd-block-sandbox {
+  padding: 0;
+}
+.omd-sandbox-frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  min-height: 40px;
+}
+.omd-block-date-value {
+  font-variant-numeric: tabular-nums;
+}
+.omd-mermaid-preview {
+  display: flex;
+  justify-content: center;
+  padding: var(--omd-space-4);
+}
+.omd-mermaid-preview svg {
+  max-width: 100%;
+  height: auto;
+}
+.omd-block-source {
+  margin: 0;
+  border-radius: 0;
+}
+.omd-block-error {
+  color: var(--vscode-errorForeground, #f85149);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.85em;
+  padding: var(--omd-space-3) var(--omd-space-4);
+  white-space: pre-wrap;
+}
+.omd-block-empty {
+  opacity: 0.5;
+  padding: var(--omd-space-4);
+  font-style: italic;
+}
+
+/* Math atoms render KaTeX MathML; click to reveal the LaTeX source for editing. */
+.omd-math {
+  font-size: 1.05em;
+  cursor: pointer;
+}
+.omd-math--block {
+  display: block;
+  text-align: center;
+  margin: var(--omd-space-3) 0;
+}
+.omd-math math {
+  font-size: inherit;
+}
+.omd-math-empty {
+  opacity: 0.5;
+  font-style: italic;
+}
+.omd-math-edit {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.95em;
+  color: var(--vscode-input-foreground, inherit);
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.1));
+  border: 1px solid var(--vscode-focusBorder, #4daafc);
+  border-radius: var(--omd-radius-control);
+  padding: 2px 6px;
+  outline: none;
+  resize: vertical;
+}
+.omd-math--block .omd-math-edit {
+  width: 100%;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+/*
+ * P3 interaction surfaces. The toolbar is a single quiet bar (Principle 6 — calm chrome);
+ * the slash menu is the one insert menu. Both are thin front-ends over the command
+ * registry and share the theme-variable palette so they read as part of the editor.
+ */
+.omd-toolbar-host {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-bottom: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.25));
+}
+
+/* Match the document body's box (#omd-root) so the toolbar spans the body width and left-aligns
+   with the text — including when the outline / thread panels shift the body. */
+.omd-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 2px;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--omd-space-1) 40px;
+  box-sizing: border-box;
+}
+/* All controls — including zoom and the Insert dropdown — live in this one wrapping group. The
+   right padding reserves room for the absolutely-pinned document-issues chip so buttons never
+   underlap it. */
+.omd-toolbar-main {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  row-gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 24px;
+}
+/* Zoom + Find travel together and never split across a wrap. */
+.omd-toolbar-end {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 2px;
+}
+/* The Insert ▾ trigger: label + caret, a hair tighter than a plain text button. */
+.omd-toolbar-insert {
+  gap: 3px;
+}
+.omd-toolbar-insert .codicon {
+  font-size: 12px;
+  opacity: 0.8;
+}
+body.omd-has-outline .omd-toolbar {
+  margin-left: 260px;
+}
+body.omd-collapse-outline .omd-toolbar {
+  margin-left: auto;
+}
+body.omd-has-threads .omd-toolbar {
+  margin-right: 300px;
+}
+body.omd-collapse-comments .omd-toolbar {
+  margin-right: auto;
+}
+
+.omd-toolbar-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: var(--omd-space-1) 2px;
+  background: var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.25));
+}
+
+.omd-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--omd-radius-control);
+  background: transparent;
+  color: var(--vscode-foreground, #cccccc);
+  cursor: pointer;
+}
+.omd-toolbar-btn--text {
+  font-size: 0.85em;
+  font-weight: 600;
+}
+.omd-toolbar-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.2));
+}
+.omd-toolbar-btn--active {
+  background: var(--vscode-inputOption-activeBackground, rgba(77, 170, 252, 0.25));
+  color: var(--vscode-inputOption-activeForeground, #ffffff);
+}
+
+/* The Insert ▾ dropdown: a panel of insert rows (reuses .omd-slash-item for the rows). It lives
+   inside a positioned .omd-floating layer, so it carries the panel look but not its own position. */
+.omd-insert-menu {
+  min-width: 208px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: var(--omd-space-1);
+  background: var(--vscode-editorWidget-background, #252526);
+  border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
+  border-radius: var(--omd-radius-panel);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.omd-insert-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.omd-insert-item:hover {
+  background: var(--vscode-list-hoverBackground, rgba(127, 127, 127, 0.15));
+}
+.omd-insert-menu-sep {
+  height: 1px;
+  margin: var(--omd-space-1) var(--omd-space-1);
+  background: var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.25));
+}
+
+.omd-slash-menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 200px;
+  max-width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--omd-space-1);
+  background: var(--vscode-editorWidget-background, #252526);
+  border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
+  border-radius: var(--omd-radius-panel);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.omd-slash-group {
+  padding: var(--omd-space-1) var(--omd-space-2) 2px;
+  font-size: 0.72em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+}
+
+.omd-slash-item {
+  display: flex;
+  align-items: center;
+  gap: var(--omd-space-2);
+  padding: var(--omd-space-1) var(--omd-space-2);
+  border-radius: var(--omd-radius-control);
+  cursor: pointer;
+}
+.omd-slash-item--active {
+  background: var(--vscode-list-activeSelectionBackground, rgba(77, 170, 252, 0.25));
+  color: var(--vscode-list-activeSelectionForeground, #ffffff);
+}
+.omd-slash-label {
+  flex: 1;
+}
+/* The @/# autocomplete reuses the slash-menu styling, with a muted detail column. */
+.omd-ref-menu .omd-slash-item {
+  justify-content: space-between;
+}
+.omd-ref-detail {
+  font-size: 0.8em;
+  opacity: 0.55;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+  margin-left: var(--omd-space-2);
+}
+/* The emoji glyph column in the `:name:` autocomplete. */
+.omd-emoji-glyph {
+  width: 1.4em;
+  text-align: center;
+  font-size: 1.05em;
+}

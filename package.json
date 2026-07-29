@@ -1,0 +1,178 @@
+{
+  "name": "omd",
+  "displayName": "OMD — Edit documents, not markup",
+  "description": "Edit markdown as a finished document — callouts, columns, diagrams, charts, comments — while the file on disk stays plain, GitHub-renderable markdown.",
+  "version": "0.0.1",
+  "publisher": "pbleisch",
+  "license": "MIT",
+  "author": "Paul Bleisch",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "wysiwyg",
+    "gfm",
+    "editor",
+    "mermaid",
+    "callouts",
+    "charts",
+    "notes",
+    "wiki"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pbleisch/omd.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pbleisch/omd/issues"
+  },
+  "homepage": "https://github.com/pbleisch/omd#readme",
+  "galleryBanner": {
+    "color": "#4daafc",
+    "theme": "dark"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "omd.editor",
+        "displayName": "OMD",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "configuration": {
+      "title": "OMD",
+      "properties": {
+        "omd.ai.enabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable AI features (the `ai` smart block). Off by default: with this off, OMD never contacts a language model. Requires GitHub Copilot (or another chat-model provider) to be installed and signed in. Running an AI block sends its prompt — and, when its context is set to *document*, the document's text — to the selected model."
+        },
+        "omd.ai.model": {
+          "type": "string",
+          "default": "gpt-4o",
+          "markdownDescription": "Default language-model *family* used by AI blocks (e.g. `gpt-4o`, `gpt-4o-mini`, `o1`). A block may override this per instance. Falls back to any available model if the requested family isn't installed."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "omd.openWith",
+        "title": "OMD: Open in OMD editor"
+      },
+      {
+        "command": "omd.reopenAsText",
+        "title": "OMD: Reopen as plain text"
+      },
+      {
+        "command": "omd.newFromTemplate",
+        "title": "OMD: New document from template…"
+      },
+      {
+        "command": "omd.exportHtml",
+        "title": "OMD: Export to HTML…"
+      },
+      {
+        "command": "omd.connectGitHub",
+        "title": "OMD: Connect GitHub (contributors & issues)"
+      },
+      {
+        "command": "omd.githubPreview",
+        "title": "OMD: Open GitHub Preview",
+        "icon": "$(preview)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "omd.githubPreview",
+          "when": "resourceExtname == .md",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "omd.githubPreview",
+          "when": "resourceExtname == .md"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build:host": "tsc -p tsconfig.host.json",
+    "build:webview": "node esbuild.mjs",
+    "build": "npm run build:host && npm run build:webview",
+    "build:icon": "rsvg-convert -w 256 -h 256 icon.svg -o icon.png",
+    "new:block": "node scripts/new-block.mjs",
+    "watch:host": "tsc -p tsconfig.host.json -w",
+    "watch:webview": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p tsconfig.host.json --noEmit",
+    "lint": "eslint src test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:integration": "tsc -p tsconfig.integration.json",
+    "test:integration": "npm run build && npm run build:integration && node ./out/integration-test/runTests.js",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "@milkdown/plugin-slash": "^7.18.0",
+    "@vscode/codicons": "^0.0.44",
+    "chart.js": "^4.5.0",
+    "github-markdown-css": "^5.9.0",
+    "handlebars": "^4.7.8",
+    "hast-util-from-html": "^2.0.3",
+    "js-yaml": "^4.1.0",
+    "katex": "^0.16.11",
+    "mathjax-full": "^3.2.2",
+    "mermaid": "^11.0.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gemoji": "^8.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-github-blockquote-alert": "^1.3.1",
+    "remark-html": "^16.0.0",
+    "remark-math": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "shiki": "^4.0.0",
+    "unified": "^11.0.0",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "@milkdown/core": "^7.7.0",
+    "@milkdown/ctx": "^7.7.0",
+    "@milkdown/plugin-listener": "^7.18.0",
+    "@milkdown/preset-commonmark": "^7.7.0",
+    "@milkdown/preset-gfm": "^7.7.0",
+    "@milkdown/transformer": "^7.7.0",
+    "@milkdown/utils": "^7.7.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.13.0",
+    "glob": "^13.0.6",
+    "jsdom": "^29.1.1",
+    "mocha": "^11.7.6",
+    "simple-icons": "^16.27.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.10.0",
+    "vitest": "^2.0.0"
+  }
+}

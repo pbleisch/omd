@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run OMD Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["${workspaceFolder}", "--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "npm: build"
+    },
+    {
+      "name": "Run OMD (showcase wiki)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["${workspaceFolder}/showcase", "--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "npm: build"
+    }
+  ]
+}

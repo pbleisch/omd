@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" width="1254" height="1254" role="img" aria-label="OMD logo">
+  <title>OMD</title>
+
+  <!-- card -->
+  <rect x="7" y="7" width="1240" height="1240" rx="150" ry="150" fill="#0A0C11"/>
+
+  <!-- O : speech bubble -->
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M273.66 793.87L130 810L186.72 759.63A164.5 164.5 0 1 1 273.66 793.87Z" stroke-width="47"/>
+    <g stroke-width="20">
+      <path d="M213 584H365"/>
+      <path d="M213 632.5H365"/>
+      <path d="M213 681.5H295"/>
+    </g>
+  </g>
+
+  <!-- M -->
+  <path fill="#1F89FB" d="M499 453A12 12 0 0 1 511 441L517.68 441A12 12 0 0 1 526.57 444.95L651.36 582.85A13 13 0 0 0 670.64 582.85L795.43 444.95A12 12 0 0 1 804.32 441L811 441A12 12 0 0 1 823 453L823 808A12 12 0 0 1 811 820L773 820A12 12 0 0 1 761 808L761 605.88A11 11 0 0 0 741.96 598.37L669.04 676.4A11 11 0 0 1 652.96 676.4L580.04 598.37A11 11 0 0 0 561 605.88L561 808A12 12 0 0 1 549 820L511 820A12 12 0 0 1 499 808Z"/>
+
+  <!-- D -->
+  <path fill="#1F89FB" d="M885 441L990.3 441A170.4 189.75 0 0 1 1160.7 630.75A170.4 189.75 0 0 1 990.3 820.5L885 820.5A12 12 0 0 1 873 808.5L873 778.5A12 12 0 0 1 885 766.5L990.3 766.5A122.7 135.75 0 0 0 1113 630.75A122.7 135.75 0 0 0 990.3 495L885 495A12 12 0 0 1 873 483L873 453A12 12 0 0 1 885 441Z"/>
+
+  <!-- download arrow -->
+  <g fill="none" stroke="#1F89FB">
+    <path d="M975 568V715" stroke-width="36" stroke-linecap="round"/>
+    <path d="M905 663L975 733L1045 663" stroke-width="32" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4"/>
+  </g>
+</svg>
