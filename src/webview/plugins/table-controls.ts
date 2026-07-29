@@ -286,16 +286,20 @@ class TableControls {
     if (!this.active) return;
     e.preventDefault();
     this.drag = { kind, from: index, target: null };
-    // A plain click (no move before mouseup) selects the line instead of reordering. The header
-    // row is selectable this way too — it just can't be *reordered* (guarded in onDragMove).
-    this.pendingSelect = () => (kind === 'col' ? this.selectColumn(this.active!, index) : this.selectRow(this.active!, index));
+    // Select the line up front, which does double duty. A plain click (no move before mouseup)
+    // leaves it selected, as before. And critically, `moveTableColumn`/`moveTableRow` resolve the
+    // line to move from `tr.selection` — the `pos` option only *finds* the table — so without a
+    // selection inside this table the drop command silently returns false and nothing moves.
+    // Selecting here also matches Notion/Confluence, where the line highlights as you drag.
+    // The header row is selectable this way too; it just can't be *reordered* (see onDragMove).
+    if (kind === 'col') this.selectColumn(this.active, index);
+    else this.selectRow(this.active, index);
     this.moved = false;
     document.body.classList.add('omd-dragging-block');
     document.addEventListener('mousemove', this.onDragMove, true);
     document.addEventListener('mouseup', this.onDragUp, true);
   }
 
-  private pendingSelect: (() => void) | null = null;
   private moved = false;
 
   private onDragMove(e: MouseEvent): void {
@@ -385,13 +389,9 @@ class TableControls {
     const a = this.active;
     const drag = this.drag;
     const moved = this.moved;
-    const select = this.pendingSelect;
-    this.endDrag(); // clears drag/moved/pendingSelect — capture them first
+    this.endDrag(); // clears drag/moved — capture them first
     if (!a || !drag) return;
-    if (!moved) {
-      select?.(); // treat as a click → select the line
-      return;
-    }
+    if (!moved) return; // a plain click: the line was already selected on mousedown
     if (drag.target == null) return;
     const pos = this.cellPos(a, 0, 0); // any cell inside this table locates it for the move
     const cmd = drag.kind === 'col' ? moveTableColumn : moveTableRow;
@@ -402,7 +402,6 @@ class TableControls {
   private endDrag(): void {
     this.drag = null;
     this.moved = false;
-    this.pendingSelect = null;
     this.dropLine.style.display = 'none';
     document.body.classList.remove('omd-dragging-block');
     document.removeEventListener('mousemove', this.onDragMove, true);
