@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { copyFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync } from 'node:fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const watch = process.argv.includes('--watch');
@@ -13,6 +13,10 @@ const watch = process.argv.includes('--watch');
  */
 function copyHostAssets() {
   const R = (p) => resolve(__dirname, p);
+  // Every file in media/ is gitignored, so git doesn't track the directory and a fresh clone (CI,
+  // or a new contributor) has no media/ at all. copyFileSync would then fail with an ENOENT that
+  // names the *source* path, which reads like a missing dependency rather than a missing dest dir.
+  mkdirSync(R('media'), { recursive: true });
   copyFileSync(R('node_modules/github-markdown-css/github-markdown.css'), R('media/github-markdown.css'));
   copyFileSync(R('node_modules/mermaid/dist/mermaid.min.js'), R('media/mermaid.min.js'));
   console.log('[omd] copied host assets → media/ (github-markdown.css, mermaid.min.js)');
