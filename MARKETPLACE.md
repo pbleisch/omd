@@ -5,15 +5,16 @@
 OMD renders markdown as a finished document — callouts, tables, task lists, code, diagrams, charts,
 comments — and edits it that way. The file on disk stays plain, GitHub-renderable markdown.
 
-<!-- SCREENSHOT: hero.png — the single most important image on this page.
-     A real document open in the OMD editor, VS Code dark theme, wide (roughly 2:1).
-     Should show several rich constructs at once so the "finished document" claim is obvious
-     at a glance: a GitHub alert callout, a styled table, a task list with checkboxes,
-     a Mermaid diagram, and some syntax-highlighted code. No slash menu open, no toolbar
-     interaction mid-flight — this shot is about the finished result, not the mechanics.
-     Uncomment when captured:
-![OMD editing a markdown document](docs/images/hero.png)
--->
+<!-- Assets live in docs/images/. vsce *would* rewrite relative paths for us (it infers a base URL
+     from `repository` in package.json), but these are written absolute so the ref is ours to choose
+     rather than whatever vsce infers. They point at `main`: a floating ref means a screenshot can be
+     improved without cutting a release. Pin to a tag instead if the listing should be immutable per
+     version. Note the Marketplace requires image URLs to resolve over https, and rejects SVGs. -->
+
+![A single document in OMD — a GitHub alert callout, a Mermaid diagram, a table, a task list and syntax-highlighted code, all rendered and editable in place](https://raw.githubusercontent.com/pbleisch/omd/main/docs/images/hero.png)
+
+*One page, top to bottom: every construct above is plain GFM on disk, and every one of them is
+edited directly in the document.*
 
 ## The round-trip is the point
 
@@ -24,14 +25,10 @@ That means nothing about your file becomes proprietary, diffs stay clean, and th
 the same on GitHub as it does here. Every construct OMD writes is plain GFM that other tools —
 and other people — can read.
 
-<!-- SCREENSHOT: roundtrip.png — a side-by-side that proves the claim.
-     Left: the OMD rendered view of a document with a callout and a table.
-     Right: the exact same file opened as plain text (OMD: Reopen as plain text), showing it is
-     ordinary GFM — `> [!NOTE]`, a pipe table, `- [ ]` task items. Ideally VS Code split view so
-     it reads as one screenshot, not two pasted together.
-     Uncomment when captured:
-![The same file rendered and as plain markdown](docs/images/roundtrip.png)
--->
+![The same file side by side — OMD's rendered view on the left, the plain GFM source on the right](https://raw.githubusercontent.com/pbleisch/omd/main/docs/images/roundtrip.png)
+
+*Same file, same moment. On the right is exactly what's on disk — `> [!WARNING]`, a fenced
+`mermaid` block, a pipe table, `- [x]` task items.*
 
 ## What you get
 
@@ -51,26 +48,19 @@ and other people — can read.
 - **Wiki-aware** — edits a cloned GitHub Wiki's flat page set correctly, including the space↔dash
   page-name mapping.
 
-<!-- SCREENSHOT: slash-menu.png — the mechanics shot, showing extensibility is real.
-     The `/` block menu open mid-document with its groups visible and a few block names legible.
-     Crop tight enough that the menu entries are readable at Marketplace thumbnail width.
-     Uncomment when captured:
-![The slash menu for inserting smart blocks](docs/images/slash-menu.png)
--->
+### Insert a block with `/`
 
-<!-- SCREENSHOT: tables.png — the feature most likely to win someone over.
-     A table mid-edit with the overlay row/column controls visible (the handles for moving and
-     sorting). Markdown tables are miserable to hand-edit and this is the clearest "OMD does
-     something your current editor cannot" moment.
-     Uncomment when captured:
-![Spreadsheet-style table editing](docs/images/tables.png)
--->
+![Typing slash opens the block menu, filtering to Three columns as you type, which inserts a live three-column block](https://raw.githubusercontent.com/pbleisch/omd/main/docs/images/slash-menu.gif)
 
-<!-- SCREENSHOT: comments.png — optional, include if the page still feels thin.
-     A comment thread anchored to a text selection, with the threading UI visible.
-     Uncomment when captured:
-![Commenting on a selection](docs/images/comments.png)
--->
+Type `/`, keep typing to filter, and the block lands in the document ready to edit — here, a
+three-column layout that a plain markdown reader still understands.
+
+### Tables you can actually edit
+
+![Dragging a table column to reorder it, then sorting rows by a column](https://raw.githubusercontent.com/pbleisch/omd/main/docs/images/tables.gif)
+
+Hover any table for overlay controls: drag a column or row to reorder it, sort by a column, insert
+and remove. The file on disk stays a plain GFM pipe table throughout.
 
 ## Getting started
 
