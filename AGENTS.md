@@ -63,6 +63,10 @@ the real host.
    default** (`omd.ai.enabled`), the **host** owns every model call (`vscode.lm` — the webview has no
    network), it runs **only on an explicit action, never on load**, and its result is cached as GFM so
    the round-trip holds. No chat participant, no language-model tools (`docs/design/DECISIONS.md`).
+7. **OMD never takes over markdown on install.** The custom editor stays at `priority: "option"`; it
+   becomes the default only when the user runs `omd.makeDefaultEditor`, which merges a `*.md` entry
+   into `workbench.editorAssociations` at **global** scope and never clobbers the user's other
+   entries. Do not restore `priority: "default"` (`docs/design/DECISIONS.md`).
 
 ## Adding a smart block?
 
@@ -90,3 +94,10 @@ Not "the test is green." Open the editor, do what a writer would do, and re-read
 `docs/design/PRINCIPLES.md`. If a principle is betrayed — unstyled, dead, misaligned, or the
 round-trip slips — it isn't done. Then: add the round-trip test, run `npm test` and `npm run lint`,
 and add a `CHANGELOG.md` entry under `[Unreleased]`.
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.

@@ -49,7 +49,7 @@
             "filenamePattern": "*.md"
           }
         ],
-        "priority": "default"
+        "priority": "option"
       }
     ],
     "configuration": {
@@ -77,6 +77,14 @@
         "title": "OMD: Reopen as plain text"
       },
       {
+        "command": "omd.makeDefaultEditor",
+        "title": "OMD: Make OMD the default Markdown editor"
+      },
+      {
+        "command": "omd.restoreDefaultEditor",
+        "title": "OMD: Restore the built-in Markdown editor"
+      },
+      {
         "command": "omd.newFromTemplate",
         "title": "OMD: New document from template…"
       },
@@ -100,6 +108,11 @@
           "command": "omd.githubPreview",
           "when": "resourceExtname == .md",
           "group": "navigation"
+        },
+        {
+          "command": "omd.makeDefaultEditor",
+          "when": "activeCustomEditorId == 'omd.editor'",
+          "group": "9_omd"
         }
       ],
       "commandPalette": [

@@ -6,10 +6,25 @@ you can revisit — but revisit it deliberately, knowing what it bought.
 
 ## Foundational choices
 
-**A custom editor implemented as a webview.** VS Code lets an extension replace the editor
+**A custom editor implemented as a webview.** VS Code lets an extension contribute its own editor
 for a file type. Building the surface as a webview isolates OMD's rich UI from the rest of
 the editor and gives a real browser environment for the rendering that callouts, diagrams,
 and charts need. The cost is the two-process split and message passing; it's worth it.
+
+**Becoming the default markdown editor is an opt-in, never an install side effect.** Markdown is
+where people keep their notes, their READMEs, and their `git commit` scratch — silently replacing the
+editor that opens it is a trust violation dressed as a convenience, and it is the single most
+reliable way to earn a one-star review. So OMD registers at `priority: "option"`: a fresh install
+changes nothing, and the way in is **OMD: Open in OMD editor** on one file you already know.
+
+`priority` is static manifest metadata — an extension cannot change its own priority at runtime — so
+the opt-in works through the one runtime lever there is, VS Code's `workbench.editorAssociations`
+setting. **OMD: Make OMD the default Markdown editor** adds a `"*.md": "omd.editor"` entry at
+*global* scope; **OMD: Restore the built-in Markdown editor** removes it. Two rules are
+non-negotiable there: that map belongs to the user and may already hold their entries for other file
+types, so both commands **merge and never clobber**; and neither writes workspace settings, because
+"open markdown in OMD" is a preference about a person, not a property of a project. The per-file
+commands stay the try-before-you-commit path and matter *more* under this shape, not less.
 
 **Markdown is the document model, end to end.** OMD is a rich *view* over markdown, not a
 separate format converted at save time. This is what makes the round-trip achievable rather

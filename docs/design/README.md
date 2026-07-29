@@ -1,8 +1,9 @@
 # OMD — Design Context
 
-OMD is a VS Code extension that replaces the default markdown editor with a WYSIWYG surface:
-you edit the finished document — callouts, columns, diagrams, charts, comments — and the file
-on disk stays plain, GitHub-renderable markdown.
+OMD is a VS Code extension that offers a WYSIWYG surface for markdown, alongside the built-in
+editor: you edit the finished document — callouts, columns, diagrams, charts, comments — and the file
+on disk stays plain, GitHub-renderable markdown. Opening a `.md` in OMD is always the user's call;
+making it the editor that opens markdown by default is an explicit opt-in.
 
 This directory (`docs/design/`) is the design context for OMD — the *why* and the *essence*. For the
 whole documentation map, see [`../README.md`](../README.md). It is intentionally small. It captures the
