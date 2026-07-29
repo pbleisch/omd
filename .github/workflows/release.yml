@@ -56,13 +56,16 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Releasing $version on the $channel channel."
 
+      # --readme-path ships MARKETPLACE.md as the listing page instead of README.md. The repo
+      # README is contributor-facing (docs/ links, build notes); the Marketplace one is written for
+      # someone deciding whether to install. Drop this flag and the wrong README ships silently.
       - name: Package .vsix
         run: |
           set -euo pipefail
           if [ "${{ steps.meta.outputs.channel }}" = "pre-release" ]; then
-            npx vsce package --pre-release --out "${{ steps.meta.outputs.vsix }}"
+            npx vsce package --pre-release --readme-path MARKETPLACE.md --out "${{ steps.meta.outputs.vsix }}"
           else
-            npx vsce package --out "${{ steps.meta.outputs.vsix }}"
+            npx vsce package --readme-path MARKETPLACE.md --out "${{ steps.meta.outputs.vsix }}"
           fi
 
       - name: Attach .vsix to the GitHub Release

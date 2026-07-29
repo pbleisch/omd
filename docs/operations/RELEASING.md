@@ -32,11 +32,11 @@ genuinely closed beta, use the VSIX path below.
 ## One-time setup (manual — needs accounts)
 
 1. **Make the GitHub repo public before the first Marketplace publish.** `vsce` rewrites every
-   relative link in `README.md` to `https://github.com/pbleisch/omd/...` when it packages. While the
-   repo is private, the logo and every `docs/` / `CONTRIBUTING.md` / `LICENSE` link on the
-   Marketplace listing 404s for visitors. (Verify after packaging by unzipping the `.vsix` and
-   reading `extension/readme.md`.) If the repo moves, update `repository`, `bugs`, and `homepage` in
-   `package.json`, the URLs in `SECURITY.md`, and the links in `README.md`.
+   relative link in the listing README to `https://github.com/pbleisch/omd/...` when it packages.
+   While the repo is private, screenshots and any relative link 404 for Marketplace visitors.
+   (Verify after packaging by unzipping the `.vsix` and reading `extension/readme.md`.) If the repo
+   moves, update `repository`, `bugs`, and `homepage` in `package.json`, the URLs in `SECURITY.md`,
+   and the links in `README.md` and `MARKETPLACE.md`.
 2. **Create an Azure DevOps organization.** Marketplace publishers are backed by Azure DevOps. Sign
    in at <https://dev.azure.com> with a Microsoft account and create an org (free). You won't use it
    for anything else; it exists to anchor the token.
@@ -82,6 +82,11 @@ each new build is a manual reinstall for them, so keep the round short.
       the `[Unreleased]` items in `CHANGELOG.md` under the new version with today's date.
 - [ ] `npm run package` and **install the resulting `.vsix` into a clean VS Code**; open a `.md`,
       confirm rendering, insert a few blocks, export, and check the README preview looks right.
+- [ ] **Screenshots are in `MARKETPLACE.md`.** The listing page is `MARKETPLACE.md`, not `README.md`
+      (passed via `--readme-path` in the npm scripts *and* the release workflow — both must carry it).
+      Its screenshot placeholders are HTML comments describing the shot to capture; uncomment each
+      image line once the file exists under `docs/images/`. A listing with no images badly
+      undersells a visual editor.
 - [ ] Unzip the `.vsix` and confirm no source, `node_modules`, source maps, or `showcase/` snuck in,
       and that `extension/readme.md`'s rewritten links resolve against the public repo.
 - [ ] Regenerate `THIRD-PARTY-NOTICES.md` if dependencies changed, and run `npm audit` — confirm no

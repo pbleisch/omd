@@ -33,9 +33,15 @@ test/**
 media/**/*.map
 test/preview/**
 
+# The listing page is MARKETPLACE.md, shipped via `--readme-path` (see package.json's `package`
+# script and .github/workflows/release.yml). vsce writes it into the .vsix as `readme.md`, which
+# collides case-insensitively with `README.md` and hard-fails packaging — so the repo README, which
+# is contributor-facing anyway, is excluded here.
+README.md
+
 # Design docs, backlog, and the demo wiki (not needed at runtime).
-# NOTE: LICENSE, README.md, CHANGELOG.md and THIRD-PARTY-NOTICES.md are deliberately NOT
-# listed here — they ship in the .vsix.
+# NOTE: LICENSE, CHANGELOG.md and THIRD-PARTY-NOTICES.md are deliberately NOT listed here —
+# they ship in the .vsix.
 docs/**
 examples/**
 scripts/**
