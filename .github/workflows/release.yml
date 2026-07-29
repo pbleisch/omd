@@ -68,12 +68,30 @@ jobs:
             npx vsce package --readme-path MARKETPLACE.md --out "${{ steps.meta.outputs.vsix }}"
           fi
 
+      # The release body is the hand-written CHANGELOG.md section for this version, not GitHub's
+      # auto-generated commit list: the changelog is written for someone deciding whether to install
+      # and reads as release notes, whereas `generate_release_notes: true` produced a body with
+      # "Full Changelog" repeated and a "New Contributors" section on a single-author repo.
+      # A missing section is a hard failure — shipping a release with an empty body is worse.
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          set -euo pipefail
+          awk -v ver="${{ steps.meta.outputs.version }}" '
+            $0 ~ "^## \\[" ver "\\]" { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "::error::No CHANGELOG.md section for ${{ steps.meta.outputs.version }}"
+            exit 1
+          fi
+
       - name: Attach .vsix to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.meta.outputs.vsix }}
           prerelease: ${{ steps.meta.outputs.channel == 'pre-release' }}
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
 
       # Publishes the exact artifact attached above, so what testers download is byte-identical to
       # what the Marketplace serves. vsce cross-checks that a --pre-release publish was packaged
