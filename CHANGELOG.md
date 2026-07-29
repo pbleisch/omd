@@ -6,6 +6,23 @@ All notable changes to OMD are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- **OMD no longer takes over markdown on install.** The custom editor is registered at
+  `priority: "option"` instead of `"default"`, so installing OMD changes nothing about which editor
+  opens your `.md` files. Try it on a file with **OMD: Open in OMD editor**; make it permanent only
+  if you want to.
+
+### Added
+
+- **OMD: Make OMD the default Markdown editor** — opts in, so `.md` files open in OMD from then on.
+- **OMD: Restore the built-in Markdown editor** — the inverse, so the opt-in is reversible from
+  inside OMD and you are never stuck.
+
+  Both write at global (user) scope through `workbench.editorAssociations`, merging into the map so
+  associations you already have for other file types are left untouched. Running either twice is a
+  no-op, and each reports what it did with a single notification carrying the way back out.
+
 ## [0.1.0] — 2026-07-28
 
 First pre-release. A VS Code custom editor that renders `.md` as a finished, WYSIWYG document —

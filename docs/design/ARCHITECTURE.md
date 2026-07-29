@@ -7,10 +7,13 @@ and the on-disk formats in [`FORMATS.md`](FORMATS.md), not any particular module
 
 ## The core idea
 
-OMD replaces VS Code's default text editor for `.md` files with a **custom editor**: a
-WYSIWYG surface that edits the *rendered* document while persisting *plain GFM*. The
-document model is markdown the whole way through — the editor is a rich view over markdown,
-never a separate format that gets converted at the door.
+OMD is a **custom editor** for `.md` files: a WYSIWYG surface that edits the *rendered* document
+while persisting *plain GFM*. The document model is markdown the whole way through — the editor is a
+rich view over markdown, never a separate format that gets converted at the door.
+
+It is registered at `priority: "option"`, so it sits *beside* VS Code's text editor rather than
+displacing it — installing OMD changes nothing about which editor opens markdown. See
+[`DECISIONS.md`](DECISIONS.md) for why, and how the opt-in works.
 
 ## Two processes
 

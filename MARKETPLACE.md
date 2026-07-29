@@ -64,10 +64,12 @@ and remove. The file on disk stays a plain GFM pipe table throughout.
 
 ## Getting started
 
-1. Open any `.md` file — OMD is the default editor for markdown.
+1. Open any `.md` file and run **OMD: Open in OMD editor**. OMD opens markdown as a document when
+   you ask it to — installing it leaves your editor exactly as it was.
 2. Press `/` in the document for the block menu, or use the toolbar.
-3. Prefer plain text for a specific file? **OMD: Reopen as plain text**. To switch back,
-   **OMD: Open in OMD editor**.
+3. Want it every time? **OMD: Make OMD the default Markdown editor** — and
+   **OMD: Restore the built-in Markdown editor** hands markdown straight back whenever you like.
+   For a single file, **OMD: Reopen as plain text** drops to plain text without changing anything else.
 
 Starting fresh, run **OMD: New document from template…** for a document that already exercises the
 main constructs.
@@ -78,6 +80,8 @@ main constructs.
 |---|---|
 | **OMD: Open in OMD editor** | Open the current file in OMD. |
 | **OMD: Reopen as plain text** | Drop back to VS Code's plain text editor. |
+| **OMD: Make OMD the default Markdown editor** | Open `.md` files in OMD from now on. |
+| **OMD: Restore the built-in Markdown editor** | Hand markdown back to VS Code's built-in editor. |
 | **OMD: New document from template…** | Create a document from a template. |
 | **OMD: Export to HTML…** | Export a self-contained HTML file. |
 | **OMD: Open GitHub Preview** | Live side-by-side "render like GitHub" view. |

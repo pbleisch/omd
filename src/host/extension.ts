@@ -3,6 +3,7 @@ import { OmdEditorProvider } from './editorProvider';
 import { newFromTemplate } from './newDocument';
 import { exportHtmlCommand } from './exportCommand';
 import { GitHubPreview } from './githubPreview';
+import { makeDefaultEditor, restoreDefaultEditor } from './defaultEditor';
 
 export function activate(context: vscode.ExtensionContext): void {
   const log = vscode.window.createOutputChannel('OMD');
@@ -26,6 +27,15 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.commands.executeCommand('vscode.openWith', target, OmdEditorProvider.viewType);
       }
     }),
+    // The standing preference, opt-in and reversible. OMD registers at `priority: "option"`, so
+    // these are the only way `.md` starts (or stops) opening in OMD by default. No `when` clause on
+    // either: both must be invocable cold, with no markdown file open.
+    vscode.commands.registerCommand('omd.makeDefaultEditor', () =>
+      makeDefaultEditor(OmdEditorProvider.viewType, log)
+    ),
+    vscode.commands.registerCommand('omd.restoreDefaultEditor', () =>
+      restoreDefaultEditor(OmdEditorProvider.viewType, log)
+    ),
     vscode.commands.registerCommand('omd.newFromTemplate', () => newFromTemplate(log)),
     vscode.commands.registerCommand('omd.exportHtml', (uri?: vscode.Uri) =>
       exportHtmlCommand(

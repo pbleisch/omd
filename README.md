@@ -35,9 +35,12 @@ so nothing about your file is proprietary, and it renders the same on GitHub as 
 ## Getting started
 
 1. Install OMD from the VS Code Marketplace (or `code --install-extension omd.vsix`).
-2. Open any `.md` file — OMD is the default editor for markdown. To open a specific file the plain
-   way, use **OMD: Reopen as plain text**; to switch back, **OMD: Open in OMD editor**.
+2. Open a `.md` file and run **OMD: Open in OMD editor**. Installing OMD does not change which
+   editor opens markdown, so this is how you see it — try it on a file you know.
 3. Press `/` in the document for the block menu, or use the toolbar.
+4. Like it? Run **OMD: Make OMD the default Markdown editor** and `.md` files open in OMD from then
+   on. **OMD: Restore the built-in Markdown editor** undoes that at any time, and
+   **OMD: Reopen as plain text** drops a single file back to plain text without changing the default.
 
 New to it? Open the bundled **`showcase/`** wiki in the source repo — it exercises every feature.
 
