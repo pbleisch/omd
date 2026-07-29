@@ -2,11 +2,11 @@
 
 <div align="center">
 
-<img src="icon.svg" width="200">
+<img src="icon.png" width="200" alt="OMD">
 
 </div>
 
-OMD is a VS Code WYSIWYG editor for `.md` files that lets you visually edit markdown elemnts —  callouts,
+OMD is a VS Code WYSIWYG editor for `.md` files that lets you visually edit markdown elements —  callouts,
 tables, task lists, code, diagrams, charts, comments — while the file on disk stays **plain,
 GitHub-renderable markdown**.
 

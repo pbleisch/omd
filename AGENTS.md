@@ -32,18 +32,21 @@ Two processes that talk **only** through `src/shared/messages.ts`:
 
 ```bash
 npm install
-npm run build             # host (tsc → out/ + esbuild → dist/) + webview (esbuild → media/)
+npm run build             # build:host (tsc → out/) + build:webview (esbuild → dist/ and media/)
 npm run typecheck         # tsc --noEmit (host)
 npm run lint              # eslint src test
 npm test                  # vitest: round-trip + rendering unit tests (jsdom)
 npm run test:integration  # host suite in a real VS Code (@vscode/test-electron)
 ```
 
-The host runs from compiled output: a host change needs `npm run build:host` **and a Reload Window**
-to take effect; a webview change needs `npm run build:webview`. Press **F5** for an Extension
-Development Host. For fast visual iteration, `test/preview/index.html` runs the webview bundle in a
-plain browser — but it can't reproduce real pointer drags, native text selection, or host
-round-trips; verify those in the real host.
+Both sides run from esbuild bundles, and `node esbuild.mjs` (i.e. `build:webview`) builds **both** of
+them: the host to `dist/extension.js` — what `main` in `package.json` points at — and the webview to
+`media/webview.js`. So a change to either side needs `npm run build` **and a Reload Window** to take
+effect. `build:host` is `tsc` for typecheck and the `out/` tree the integration tests run from; it
+does *not* change what the running extension loads. Press **F5** for an Extension Development Host.
+For fast visual iteration, `test/preview/index.html` runs the webview bundle in a plain browser — but
+it can't reproduce real pointer drags, native text selection, or host round-trips; verify those in
+the real host.
 
 ## Hard gates (non-negotiable)
 

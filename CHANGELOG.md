@@ -6,6 +6,15 @@ All notable changes to OMD are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-07-28
+
+First pre-release. A VS Code custom editor that renders `.md` as a finished, WYSIWYG document —
+callouts, tables, task lists, code, Mermaid, math, charts, smart blocks, comments, references, and
+backlinks — while the file on disk stays plain, GitHub-renderable markdown, byte-for-byte on save.
+
+Published on the Marketplace's **pre-release** channel: per the VS Code convention this project uses
+odd minor versions (`0.1.x`) for pre-releases and even minors (`0.2.x`) for stable releases.
+
 ### Added
 
 - **Inline AI revision** — select text, describe a change ("make this concise", "fix grammar"), and
@@ -37,7 +46,7 @@ All notable changes to OMD are documented here. The format is based on
 ### Changed
 
 - The extension host is now bundled with esbuild (`dist/extension.js`), so the packaged `.vsix`
-  ships no `node_modules` — it dropped from ~59 MB to under 3 MB.
+  ships no `node_modules` — it dropped from ~59 MB to ~4.3 MB.
 - **Export to HTML** now preserves the *OMD* rendering (styled callouts, link cards, tabs, galleries —
   content only, no editing chrome) rather than the plain-GitHub view (that's the preview panel's job).
 
@@ -48,9 +57,3 @@ All notable changes to OMD are documented here. The format is based on
   file, while the trusted injected SVG/highlighting/block wrappers are preserved.
 - **Link-card fetch is SSRF-guarded** — the target hostname is resolved and rejected if it maps to a
   private/loopback/link-local/reserved address, re-checked on every redirect hop.
-
-## [0.0.1] — unreleased
-
-Initial pre-release: a VS Code custom editor that renders `.md` as a finished, WYSIWYG document —
-callouts, tables, task lists, code, Mermaid, math, charts, smart blocks, comments, references, and
-backlinks — while the file on disk stays plain, GitHub-renderable markdown, byte-for-byte on save.

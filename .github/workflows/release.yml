@@ -1,6 +1,16 @@
 name: Release
 
 # Package (and optionally publish) the extension when a version tag is pushed, e.g. `v0.1.0`.
+#
+# The release channel follows the VS Code convention encoded in the version itself:
+#   odd  minor (0.1.x, 0.3.x) -> Marketplace **pre-release** channel
+#   even minor (0.2.x, 1.0.x) -> Marketplace **stable** channel
+# The Marketplace does not accept semver pre-release tags (`0.1.0-beta.1`), which is why the
+# channel rides on the minor version's parity instead.
+#
+# Publishing to the Marketplace happens only when the VSCE_PAT secret exists. Without it the job
+# still builds the .vsix and attaches it to the GitHub Release — which is the private-beta path:
+# testers install the attached file with `code --install-extension omd-<version>.vsix`.
 on:
   push:
     tags: ['v*']
@@ -11,6 +21,11 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Job-level so that step-level `if:` conditions can see it. A step's own `env:` block is NOT in
+    # scope for that same step's `if:`, and the `secrets` context is unavailable there entirely —
+    # declaring it here is what makes the publish guard below actually fire.
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,16 +34,53 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run typecheck
       - run: npm test
+
+      - name: Resolve version and channel
+        id: meta
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+          minor="$(printf '%s' "$version" | cut -d. -f2)"
+          if [ $((minor % 2)) -eq 1 ]; then channel=pre-release; else channel=stable; fi
+          {
+            echo "version=$version"
+            echo "channel=$channel"
+            echo "vsix=omd-$version.vsix"
+          } >> "$GITHUB_OUTPUT"
+          echo "Releasing $version on the $channel channel."
+
       - name: Package .vsix
-        run: npx vsce package --out omd.vsix
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.meta.outputs.channel }}" = "pre-release" ]; then
+            npx vsce package --pre-release --out "${{ steps.meta.outputs.vsix }}"
+          else
+            npx vsce package --out "${{ steps.meta.outputs.vsix }}"
+          fi
+
       - name: Attach .vsix to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: omd.vsix
-      # Publishes to the VS Code Marketplace only when a VSCE_PAT secret is configured.
+          files: ${{ steps.meta.outputs.vsix }}
+          prerelease: ${{ steps.meta.outputs.channel == 'pre-release' }}
+          generate_release_notes: true
+
+      # Publishes the exact artifact attached above, so what testers download is byte-identical to
+      # what the Marketplace serves. vsce cross-checks that a --pre-release publish was packaged
+      # with --pre-release, so the two flags can't silently drift apart.
       - name: Publish to Marketplace
-        if: ${{ env.VSCE_PAT != '' }}
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --pat "$VSCE_PAT"
+        if: env.VSCE_PAT != ''
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.meta.outputs.channel }}" = "pre-release" ]; then
+            npx vsce publish --pre-release --packagePath "${{ steps.meta.outputs.vsix }}"
+          else
+            npx vsce publish --packagePath "${{ steps.meta.outputs.vsix }}"
+          fi
