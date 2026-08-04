@@ -2,7 +2,7 @@
   "name": "omd",
   "displayName": "OMD — Edit documents, not markup",
   "description": "Edit markdown as a finished document — callouts, columns, diagrams, charts, comments — while the file on disk stays plain, GitHub-renderable markdown.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "pbleisch",
   "license": "MIT",
   "author": "Paul Bleisch",
