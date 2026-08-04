@@ -2,9 +2,17 @@
 
 All notable changes to OMD are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+[Semantic Versioning](https://semver.org/spec/v0.1.2.html).
 
 ## [Unreleased]
+
+## [0.1.2] — 2026-08-04
+
+### Fixed
+
+- **Undo no longer merges separate edits into one step.** The history grouping window was
+  reduced from 500ms to 200ms, so editing two lines in quick succession now undoes
+  independently rather than as a single revert.
 
 ## [0.1.1] — 2026-07-29
 
