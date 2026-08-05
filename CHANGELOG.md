@@ -6,6 +6,14 @@ All notable changes to OMD are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-08-05
+
+### Added
+
+- **Large document undo tests.** New test suite covering undo behavior on documents from 30KB to
+  1.5MB, confirming `setMarkdown` dispatches zero transactions for identical content even on
+  very large documents.
+
 ## [0.1.2] — 2026-08-04
 
 ### Fixed
