@@ -258,6 +258,16 @@ export async function createOmdEditor(opts: OmdEditorOptions): Promise<OmdEditor
 
   return {
     setMarkdown(markdown: string) {
+      // Compare the incoming markdown against what the editor currently serializes to.
+      // If they produce the same fixed-up output, skip dispatching entirely — this prevents
+      // setMarkdown from resetting ProseMirror's history timer, which would chain separate
+      // user edits into one undo step through a sequence of intermediate setMarkdown calls.
+      // We compare at the serialization level (not ProseMirror doc.eq()) because Milkdown's
+      // heading command and remark parser can produce structurally different docs that
+      // serialize to identical markdown.
+      const current = snapshot();
+      if (applySerializeFixups(markdown) === current) return;
+
       editor.action(replaceAll(markdown));
       // Record the canonical form we now hold, so the debounced markdownUpdated this triggers
       // is recognised as a load — not a user edit — and never echoed back to the host (#14).
