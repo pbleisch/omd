@@ -50,8 +50,8 @@ The *wiki publish/clone workflow* itself lives in a separate extension — OMD's
 You don't need GitHub at all. Any local folder of `.md` files works the same way: wikilinks,
 backlinks, relative links, and local media ([[Media]] shows `media/…` references) all resolve
 within the folder. Cross-file links can be wikilinks **or** plain relative markdown links, e.g.
-[the backlog](BUGS.md) — both navigate in OMD and render on GitHub.
+[the backlog](https://github.com/pbleisch/omd/issues) — both navigate in OMD and render on GitHub.
 
 ---
 
-_Back to [[Home]] · see the [[Backlog|BUGS]]._
+_Back to [[Home]] · see the [GitHub Issues](https://github.com/pbleisch/omd/issues)._

@@ -1,0 +1,8 @@
+# Auto-apply labels based on issue template
+# https://github.com/actions/labeler
+
+bug_report:
+  - label: bug
+
+suggestion:
+  - label: enhancement

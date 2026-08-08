@@ -32,7 +32,6 @@ document visually instead of its source, save, and it comes back byte-for-byte.
 | [[Tables]]        | Spreadsheet-style table editing                                                  |
 | [[Wiki Workflow]] | Wikilinks, backlinks, mentions, and issue references across files                |
 | [[Diagnostics]]   | Broken links and images, marked inline where they occur                          |
-| [[Backlog\|BUGS]] | The living backlog (`BUGS.md`), included here as-is                              |
 
 ## Two kinds of feature
 
