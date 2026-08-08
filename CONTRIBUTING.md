@@ -107,4 +107,4 @@ Scaffold one with `npm run new:block -- <name>`; two worked examples live in
 ## Reporting issues
 
 Use [GitHub Issues](https://github.com/pbleisch/omd/issues) to report bugs or request features.
-OMD ships issue templates — use **Bug Report** for bugs and **Feature Request** for new ideas.
+OMD ships issue templates — use **Bug Report** for bugs and **Suggestion** for new ideas.

@@ -4,5 +4,5 @@
 bug_report:
   - label: bug
 
-feature_request:
+suggestion:
   - label: enhancement

@@ -1,5 +1,5 @@
 ---
-name: Feature Request
+name: Suggestion
 about: Suggest an improvement for OMD
 title: ''
 labels: []
