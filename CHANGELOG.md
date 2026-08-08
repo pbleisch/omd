@@ -6,6 +6,12 @@ All notable changes to OMD are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.4] — 2025-07-26
+
+### Changed
+
+- **Refined Marketplace listing page.** Copy edits, removed implementation comment, tightened pre-release section.
+
 ## [0.1.3] — 2026-08-05
 
 ### Added
