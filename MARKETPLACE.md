@@ -5,23 +5,15 @@
 OMD renders markdown as a finished document — callouts, tables, task lists, code, diagrams, charts,
 comments — and edits it that way. The file on disk stays plain, GitHub-renderable markdown.
 
-<!-- Assets live in docs/images/. vsce *would* rewrite relative paths for us (it infers a base URL
-     from `repository` in package.json), but these are written absolute so the ref is ours to choose
-     rather than whatever vsce infers. They point at `main`: a floating ref means a screenshot can be
-     improved without cutting a release. Pin to a tag instead if the listing should be immutable per
-     version. Note the Marketplace requires image URLs to resolve over https, and rejects SVGs. -->
-
 ![A single document in OMD — a GitHub alert callout, a Mermaid diagram, a table, a task list and syntax-highlighted code, all rendered and editable in place](https://raw.githubusercontent.com/pbleisch/omd/main/docs/images/hero.png)
 
 *One page, top to bottom: every construct above is plain GFM on disk, and every one of them is
 edited directly in the document.*
 
-## The round-trip is the point
-
 Open a file, save it without editing, and it comes back **byte-for-byte**. OMD is a rich *view* over
 your markdown, never a separate format converted at save.
 
-That means nothing about your file becomes proprietary, diffs stay clean, and the document renders
+That means nothing about your file must become proprietary, diffs stay clean, and the document renders
 the same on GitHub as it does here. Every construct OMD writes is plain GFM that other tools —
 and other people — can read.
 
@@ -76,16 +68,16 @@ main constructs.
 
 ### Commands
 
-| Command | What it does |
-|---|---|
-| **OMD: Open in OMD editor** | Open the current file in OMD. |
-| **OMD: Reopen as plain text** | Drop back to VS Code's plain text editor. |
-| **OMD: Make OMD the default Markdown editor** | Open `.md` files in OMD from now on. |
-| **OMD: Restore the built-in Markdown editor** | Hand markdown back to VS Code's built-in editor. |
-| **OMD: New document from template…** | Create a document from a template. |
-| **OMD: Export to HTML…** | Export a self-contained HTML file. |
-| **OMD: Open GitHub Preview** | Live side-by-side "render like GitHub" view. |
-| **OMD: Connect GitHub (contributors & issues)** | Opt in to `@mention` and `#issue` resolution. |
+| Command                                         | What it does                                     |
+| ----------------------------------------------- | ------------------------------------------------ |
+| **OMD: Open in OMD editor**                     | Open the current file in OMD.                    |
+| **OMD: Reopen as plain text**                   | Drop back to VS Code's plain text editor.        |
+| **OMD: Make OMD the default Markdown editor**   | Open `.md` files in OMD from now on.             |
+| **OMD: Restore the built-in Markdown editor**   | Hand markdown back to VS Code's built-in editor. |
+| **OMD: New document from template…**            | Create a document from a template.               |
+| **OMD: Export to HTML…**                        | Export a self-contained HTML file.               |
+| **OMD: Open GitHub Preview**                    | Live side-by-side "render like GitHub" view.     |
+| **OMD: Connect GitHub (contributors & issues)** | Opt in to `@mention` and `#issue` resolution.    |
 
 ## Requirements
 
@@ -112,10 +104,7 @@ OMD collects **no telemetry**.
 
 ## Pre-release
 
-This is an early pre-release. The round-trip guarantee is covered by an extensive test suite and is
-treated as non-negotiable, but expect rough edges elsewhere, and expect things to change.
-
-Bug reports and feedback are genuinely useful right now — please file issues on the
+This is an early pre-release.  Bug reports and feedback are very much appreciated — please file issues on the
 [project repository](https://github.com/pbleisch/omd/issues).
 
 ## License
