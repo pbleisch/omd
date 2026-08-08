@@ -103,3 +103,8 @@ Scaffold one with `npm run new:block -- <name>`; two worked examples live in
 - TypeScript throughout; `omd-` prefix on CSS classes; theme variables first (see `docs/design/STYLE.md`).
 - Every on-disk construct needs a byte-for-byte round-trip test (Principle 2).
 - Keep host and editor talking only through `src/shared/messages.ts`.
+
+## Reporting issues
+
+Use [GitHub Issues](https://github.com/pbleisch/omd/issues) to report bugs or request features.
+OMD ships issue templates — use **Bug Report** for bugs and **Feature Request** for new ideas.

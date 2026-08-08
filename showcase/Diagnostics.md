@@ -87,4 +87,4 @@ No matching </details>.
 
 ---
 
-_Back to [[Home]] · see the [[Backlog|BUGS]]._
+_Back to [[Home]]._

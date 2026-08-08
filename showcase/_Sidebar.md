@@ -9,7 +9,6 @@
 - [[Tables]]
 - [[Wiki Workflow]]
 - [[Diagnostics]]
-- [[Backlog|BUGS]]
 
 ---
 
