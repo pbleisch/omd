@@ -73,6 +73,15 @@ suppression flags and whitespace-normalized comparison, so identical content doe
 However you build it, **the sync must not loop and must not lose the round-trip** — that's the
 actual requirement; the flags are one way to meet it.
 
+Two things follow from the host owning a real `TextDocument`. First, VS Code keeps **its own undo
+history** over that document, in parallel with the editor's ProseMirror history, and the two group
+edits differently — so a host push can legitimately carry a document the editor does not already
+hold. Second, the guards can only ever narrow how often that happens; they cannot make it never
+happen, because remark's re-serialization does not always reproduce the file's bytes. So **a push
+has to be applied as the narrowest edit that reaches it**, never by replacing the document:
+replacing it re-renders every block and drops the selection, which reads on screen as the content
+being pasted back into place (`src/webview/doc-diff.ts`, issue #7).
+
 ## AI is a host capability, additively
 
 The only AI surface is the `ai` smart block, and it fits the two-process shape without bending it:

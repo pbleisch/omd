@@ -335,6 +335,10 @@ export class OmdEditorProvider implements vscode.CustomTextEditorProvider {
       if (e.document.uri.toString() !== document.uri.toString()) return;
       scheduleValidate(); // validate on our own edits too — the content really did change
       if (applyingEditorEdit) return; // our own edit, already in the editor
+      // A dirty-state flip (a save, or the bookkeeping after one) fires a change event that
+      // carries no content changes. Nothing moved, so pushing the whole document back would
+      // only risk a needless re-render in the editor (#7).
+      if (e.contentChanges.length === 0) return;
       pushDocument();
     });
 

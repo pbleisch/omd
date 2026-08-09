@@ -12,6 +12,7 @@ import { commonmark } from '@milkdown/preset-commonmark';
 import { gfm } from '@milkdown/preset-gfm';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { replaceAll, getMarkdown } from '@milkdown/utils';
+import { diffDocument } from './doc-diff';
 import { tightBulletList, tightListItem } from './plugins/tight-lists';
 import { applySerializeFixups } from './plugins/serialize-fixups';
 import { calloutPlugin } from './plugins/callouts';
@@ -268,7 +269,20 @@ export async function createOmdEditor(opts: OmdEditorOptions): Promise<OmdEditor
       const current = snapshot();
       if (applySerializeFixups(markdown) === current) return;
 
-      editor.action(replaceAll(markdown));
+      // Apply the push as the narrowest edit that reaches it. `replaceAll` re-parses and
+      // re-renders the whole document, tearing down every node view and dropping the
+      // selection — on screen that is the "pasted back into place" flash of #7. Fall back
+      // to it only if the markdown will not parse.
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const next = ctx.get(parserCtx)(markdown);
+        if (!next) {
+          editor.action(replaceAll(markdown));
+          return;
+        }
+        const tr = view.state.tr;
+        if (diffDocument(view.state.doc, next, tr)) view.dispatch(tr);
+      });
       // Record the canonical form we now hold, so the debounced markdownUpdated this triggers
       // is recognised as a load — not a user edit — and never echoed back to the host (#14).
       lastEmitted = snapshot();
