@@ -9,6 +9,7 @@ import { openParamPopover } from '../ui/popover';
 import { documentHeadings } from '../blocks/anchors';
 import { insertFootnote } from '../blocks/footnote';
 import { openFind } from '../plugins/find/find-plugin';
+import { moveBlock } from './move-block';
 
 /**
  * The one command layer. Principle 4 — every capability reachable from the toolbar, a
@@ -519,6 +520,26 @@ export function buildCommands(schema: import('prosemirror-model').Schema): OmdCo
       run: (view) => insertFootnote(view)
     });
   }
+
+  // --- Reordering (keyboard + context menu; no toolbar button — see move-block.ts) ---
+  cmds.push(
+    {
+      id: 'move-block-up',
+      title: 'Move up',
+      icon: 'arrow-up',
+      shortcut: 'Alt+Up',
+      key: 'Alt-ArrowUp',
+      run: moveBlock(-1)
+    },
+    {
+      id: 'move-block-down',
+      title: 'Move down',
+      icon: 'arrow-down',
+      shortcut: 'Alt+Down',
+      key: 'Alt-ArrowDown',
+      run: moveBlock(1)
+    }
+  );
 
   // --- Find & Replace (toolbar only; the plugin owns Mod-F and the bar) ---
   cmds.push({

@@ -150,6 +150,17 @@ export function buildMenuEntries(view: EditorView): MenuEntry[] {
       contextual.push({ label: 'Revise with AI…', icon: 'sparkle', run: () => promptRevise(view) });
     }
   }
+  // Reordering. Offered off a table only — a table's own row/column moves are listed below,
+  // and Alt+Arrow inside one drives those instead (`move-block.ts`).
+  if (!isInTable(state)) {
+    if (contextual.length) contextual.push('sep');
+    const byId = new Map(buildCommands(state.schema).map((c) => [c.id, c]));
+    for (const id of ['move-block-up', 'move-block-down']) {
+      const c = byId.get(id);
+      if (c) contextual.push(cmdEntry(c, view));
+    }
+  }
+
   const block = findEditableBlock(state);
   if (block) {
     if (contextual.length) contextual.push('sep');

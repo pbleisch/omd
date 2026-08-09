@@ -6,6 +6,15 @@ All notable changes to OMD are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- **Alt+Up / Alt+Down move the block under the cursor.** The unit that moves is the deepest
+  ancestor with a sibling in that direction, so the same keys reorder list items (including their
+  nested sublists), paragraphs inside a multi-paragraph item, blocks inside a blockquote, and
+  top-level blocks. Nesting depth never changes, front matter stays anchored, the selection travels
+  with the block, and inside a table the keys move the row. At a boundary the command returns
+  `false` so the key falls through. Also on the context menu as **Move up** / **Move down**.
+
 ## [0.1.4] — 2025-07-26
 
 ### Changed
