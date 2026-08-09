@@ -14,6 +14,10 @@ All notable changes to OMD are documented here. The format is based on
   top-level blocks. Nesting depth never changes, front matter stays anchored, the selection travels
   with the block, and inside a table the keys move the row. At a boundary the command returns
   `false` so the key falls through. Also on the context menu as **Move up** / **Move down**.
+  A GitHub alert's hidden `[!NOTE]` marker line is anchored like front matter, so a body block
+  can never step over it and quietly turn the callout into a plain blockquote — the walk-up
+  continues outward and the whole alert moves instead. Each move is its own undo entry, so
+  repeated presses undo one at a time rather than collapsing into a single step.
 
 ## [0.1.4] — 2025-07-26
 

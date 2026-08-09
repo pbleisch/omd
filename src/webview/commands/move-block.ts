@@ -4,6 +4,8 @@ import { Fragment } from 'prosemirror-model';
 import type { Node as PMNode } from 'prosemirror-model';
 import type { EditorView } from 'prosemirror-view';
 import { isInTable } from 'prosemirror-tables';
+import { closeHistory } from 'prosemirror-history';
+import { CALLOUT_MARKER } from '../blocks/callout-kinds';
 import { buildTableCommands } from './table';
 
 /**
@@ -39,6 +41,19 @@ const ANCHORED = new Set(['frontmatter']);
  * inside one walks straight past it, so the container itself is what moves.
  */
 const HORIZONTAL = new Set(['table_row', 'columns']);
+
+/**
+ * A GitHub alert's `[!NOTE]` marker is a real first paragraph that the callout decoration
+ * hides (`plugins/callouts.ts`), so it is invisible to the writer. Slot 0 of such a
+ * blockquote is anchored the way front matter is: nothing swaps with it and it never moves,
+ * or a body block would step over an invisible node and silently turn the alert into a plain
+ * blockquote with raw markup showing. The walk-up then continues outward, so Alt+Arrow in a
+ * one-block alert still moves the whole callout.
+ */
+function isAnchoredCalloutMarker(parent: PMNode, index: number): boolean {
+  if (index !== 0 || parent.type.name !== 'blockquote' || parent.childCount === 0) return false;
+  return CALLOUT_MARKER.test(parent.child(0).textContent);
+}
 
 /** One candidate level: a child of `parent` at `index`, starting at document position `start`. */
 interface Level {
@@ -88,6 +103,9 @@ function findMovable(state: EditorState, dir: 1 | -1): (Level & { node: PMNode }
     if (target < 0 || target >= level.parent.childCount) continue; // no sibling that way — walk up
     const sibling = level.parent.child(target);
     if (!sibling.isBlock || ANCHORED.has(sibling.type.name)) continue;
+    // Neither side of the swap may be an alert's hidden marker line.
+    if (isAnchoredCalloutMarker(level.parent, level.index)) continue;
+    if (isAnchoredCalloutMarker(level.parent, target)) continue;
     // The swap has to leave the parent legal. A list item is `paragraph block*`, so its
     // trailing sublist can't step over the item's own first paragraph — that level declines
     // and the walk continues outward rather than producing a document the schema rejects.
@@ -148,7 +166,10 @@ export function moveBlock(dir: 1 | -1): (view: EditorView) => boolean {
       tr = tr.setSelection(TextSelection.near(tr.doc.resolve(head + delta)));
     }
 
-    view.dispatch(tr.scrollIntoView());
+    // A reorder is one discrete structural act, so it gets its own history entry. Without
+    // this, prosemirror-history groups moves with whatever it was adjacent to in the last
+    // `newGroupDelay`, so repeated presses collapse into a single undo.
+    view.dispatch(closeHistory(tr.scrollIntoView()));
     view.focus();
     return true;
   };
