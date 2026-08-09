@@ -19,6 +19,19 @@ All notable changes to OMD are documented here. The format is based on
   continues outward and the whole alert moves instead. Each move is its own undo entry, so
   repeated presses undo one at a time rather than collapsing into a single step.
 
+### Fixed
+
+- **Undo no longer flashes the document.** A document pushed from the host used to be applied by
+  replacing the whole document: every block was re-parsed and re-rendered, every node view
+  (diagram, chart, callout, code block) was torn down and rebuilt, and the selection went with it
+  — on screen, the content appeared to be pasted back into place. VS Code keeps its own undo
+  history over the underlying file alongside the editor's, so an undo could push a document the
+  editor did not already hold and trigger exactly that repaint. A push is now applied as the
+  narrowest edit that reaches it, so untouched blocks keep their DOM and the cursor stays put;
+  a push that only differs by remark's normalization now costs nothing at all. A document change
+  that carries no content changes (the dirty-state flip after a save) no longer pushes a document
+  at all. ([#7](https://github.com/pbleisch/omd/issues/7))
+
 ## [0.1.4] — 2025-07-26
 
 ### Changed
