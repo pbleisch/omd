@@ -2713,6 +2713,17 @@ body.omd-collapse-comments #omd-root {
   padding: var(--omd-space-4);
   font-style: italic;
 }
+/* Shown only while the diagram runtime loads on the session's first diagram — it fades in so a
+   fast load (a warm cache) never flashes a placeholder the reader can register. */
+.omd-block-pending {
+  opacity: 0;
+  animation: omd-pending-in 0.6s ease-out 0.15s forwards;
+}
+@keyframes omd-pending-in {
+  to {
+    opacity: 0.5;
+  }
+}
 
 /* Math atoms render KaTeX MathML; click to reveal the LaTeX source for editing. */
 .omd-math {

@@ -19,6 +19,23 @@ All notable changes to OMD are documented here. The format is based on
   continues outward and the whole alert moves instead. Each move is its own undo entry, so
   repeated presses undo one at a time rather than collapsing into a single step.
 
+### Changed
+
+- **Feature libraries load on demand, not on every document.** mermaid, Shiki and Chart.js used to
+  be bundled into the editor, so a plain prose document parsed ~4.7 MB of machinery it never
+  touched; MathJax was evaluated at activation whether or not anything was exported. Each now loads
+  the first time a document actually needs it: mermaid for a ```mermaid fence (reusing the
+  standalone runtime already shipped for the HTML export), Shiki for a fence in a language OMD
+  knows, Chart.js for a chart block, MathJax for an export or preview whose text contains math.
+  A plain prose document's editor payload drops from **6.02 MB to 1.34 MB**, everything shipped in
+  the `.vsix` from 16.8 MB to 10.2 MB, the GitHub-preview panel client from 3.46 MB to 1.5 kB, and
+  loading the host bundle at activation from 69 ms to 36 ms. A document *with* a diagram reaches
+  its first rendered diagram faster than before (~430 ms versus ~610 ms), because the smaller
+  bundle parses faster than the deferred fetch costs; while a diagram is being prepared for the
+  first time the block says so rather than sitting empty. Each library is its own bundle in
+  `media/`, loaded by a `<script>` carrying the webview's nonce, so the strict
+  `script-src 'nonce-…'` CSP is unchanged. ([#18](https://github.com/pbleisch/omd/issues/18))
+
 ### Fixed
 
 - **Undo no longer flashes the document.** A document pushed from the host used to be applied by

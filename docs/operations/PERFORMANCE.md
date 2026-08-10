@@ -2,58 +2,79 @@
 
 Where OMD spends bytes and time, what's been done, and the baselines to measure before 1.0.
 
-_Last reviewed: 2026-07 (v0.0.1)._
+_Last reviewed: 2026-08 (v0.1.4)._
 
 ## Shipped artifact size
 
-Both processes are bundled with esbuild and minified for release builds:
+Both processes are bundled with esbuild and minified for release builds. The heavy feature
+libraries are **not** in the editor bundle — they load on demand (see the next section):
 
-| Bundle | Unminified | **Minified (shipped)** |
+| File | **Minified (shipped)** | Loaded |
 |---|---|---|
-| `media/webview.js` (editor) | 11.2 MB | **5.6 MB** |
-| `dist/extension.js` (host) | 3.2 MB | **2.1 MB** |
-| Packaged `.vsix` | 59.4 MB (unbundled) | **~2.9 MB** |
+| `media/webview.js` (editor) | **1.34 MB** | always |
+| `media/mermaid.min.js` (runtime) | 3.57 MB | first diagram (also inlined into an export) |
+| `media/omd-shiki.js` (engine + themes + grammars) | 1.28 MB | first fence in a known language |
+| `media/omd-chart.js` (Chart.js) | 0.21 MB | first chart block |
+| `media/panel.js` (GitHub-preview client) | 1.5 kB | with the preview panel |
+| `dist/extension.js` (host) | **3.75 MB** | at activation, but see below |
+| Everything shipped (bundles + CSS) | **10.2 MB** | — |
+
+What a document actually loads in the editor, compared with loading everything eagerly (the shape
+before the on-demand split):
+
+| Document | Was | Now |
+|---|---|---|
+| Plain prose | 6.02 MB | **1.34 MB** (−78%) |
+| One diagram | 6.02 MB | 4.91 MB (−18%) |
+| Diagram + chart + code fence | 6.02 MB | 6.39 MB (+6%) |
+
+The worst case is slightly larger because each sidecar is self-contained and can't share its
+transitive dependencies with the entry — but those bytes arrive after first paint, only for a
+document that uses all three. Measured in an Extension Development Host, click → diagram on screen
+is **~430 ms** (median of 3, cold profile) versus **~610 ms** when mermaid was bundled: the smaller
+entry parses and evaluates faster than the extra fetch costs.
 
 Bundling the host removed ~200 MB / ~19k files of `node_modules` from the `.vsix`; minification
-roughly halves each bundle. The minified webview was smoke-tested in the preview harness (all blocks
-render, chart draws, console clean).
+roughly halves each bundle.
 
-## What's in the bundles
+## What loads when
 
-Top contributors by unminified input size (from the esbuild metafiles):
+**Webview.** The editor bundle carries OMD's own code plus prosemirror/milkdown and KaTeX
+(~1.34 MB). Everything heavier is a **sidecar** — a separate IIFE bundle in `media/` that publishes
+one global and is pulled in with a `<script>` tag on first use (`src/webview/lazy/sidecar.ts`):
 
-**Webview** (`media/webview.js`)
-
-| Module | Size | Needed when |
+| Sidecar | Size | Loaded when |
 |---|---|---|
-| `mermaid` + `@mermaid-js/parser` + `cytoscape` + `layout-base` | ~5.2 MB | a document contains a Mermaid diagram |
-| `@shikijs/langs` | ~1.1 MB | syntax-highlighting a fenced code block |
-| `katex` | ~0.6 MB | rendering math |
-| `chart.js` | ~0.5 MB | a chart block is present |
-| `lodash-es` + `es-toolkit` | ~1.1 MB | (transitive, mostly via mermaid) |
-| OMD app code + prosemirror/milkdown core | ~1.5 MB | always |
+| `mermaid.min.js` (mermaid + `@mermaid-js/parser` + `cytoscape` + lodash) | 3.57 MB | a document has a ```mermaid fence |
+| `omd-shiki.js` (`shiki/core` + engine + themes + `@shikijs/langs`) | 1.28 MB | a fence resolves to a known language |
+| `omd-chart.js` (`chart.js/auto`) | 0.21 MB | a chart block draws |
 
-**Host** (`dist/extension.js`)
+Sidecars rather than esbuild code splitting, deliberately: splitting needs `format: 'esm'`, and the
+browser fetches those chunks with **no nonce**, so it would force widening the webviews'
+`script-src 'nonce-…'` CSP. It also measured *worse* — the splitter hoists everything shared
+between eager and lazy code back into a chunk the entry imports statically (2.46 MB eager, versus
+1.34 MB with sidecars). A `<script>` tag OMD creates itself carries the nonce, so the policy is
+unchanged. `test/lazy-libraries.test.ts` is the regression gate.
 
-| Module | Size | Needed when |
+**Host** (`dist/extension.js`). Everything only the export and preview need is behind a dynamic
+`import()`, so activation never evaluates it:
+
+| Module | Size | Evaluated when |
 |---|---|---|
-| `mathjax-full` | ~2.4 MB | HTML export with math |
-| `katex` | ~0.6 MB | (via remark-math tooling) |
-| remark/unified/micromark stack | ~0.6 MB | export |
+| `mathjax-full` | ~2.5 MB | exporting or previewing a document that contains `$` |
+| `@shikijs/langs` + `katex` + remark/unified stack | ~2.3 MB | first export or preview render |
 
-The clear pattern: **the heavy libraries are feature-specific** (diagrams, code highlighting, math,
-charts, export) yet are loaded eagerly. That's the biggest remaining lever.
+Loading the host bundle (what activation pays) dropped from **69 ms to 36 ms**, and heap after load
+from 24.6 MB to 16.9 MB.
 
-## Recommendations (highest leverage first)
+## Remaining levers
 
-1. **Lazy-load feature libraries in the webview.** Dynamic-`import()` `mermaid`, `chart.js`, and
-   Shiki grammars on first actual use, so a plain prose document never parses ~7 MB of code it
-   doesn't need. Expected: large drop in first-render/parse cost for typical docs. (esbuild emits
-   separate chunks for dynamic imports; the webview would load them on demand under the CSP.)
-2. **Load only the Shiki grammars a document uses**, rather than all `@shikijs/langs`.
-3. **Lazy-load `mathjax-full` in the host export path** — it's dead weight until someone exports.
-4. Keep minification on for release (done); consider dropping the shipped source maps from the
-   `.vsix` if size matters more than in-field debugging (they're already excluded).
+1. **Load only the Shiki grammars a document uses**, rather than all of `@shikijs/langs` — the
+   sidecar is still all-or-nothing at 1.28 MB.
+2. **KaTeX (~0.6 MB) is still eager in the editor bundle** — it could become a fourth sidecar,
+   loaded on the first `$…$`.
+3. Keep minification on for release (done); the shipped source maps are already excluded from the
+   `.vsix`.
 
 ## Runtime baselines to establish (needs the real host)
 

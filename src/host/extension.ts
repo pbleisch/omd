@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { OmdEditorProvider } from './editorProvider';
 import { newFromTemplate } from './newDocument';
 import { exportHtmlCommand } from './exportCommand';
-import { GitHubPreview } from './githubPreview';
 import { makeDefaultEditor, restoreDefaultEditor } from './defaultEditor';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -54,6 +53,8 @@ export function activate(context: vscode.ExtensionContext): void {
         void vscode.window.showInformationMessage('OMD: open a markdown document to preview.');
         return;
       }
+      // Imported here, not at activation: the preview drags the whole render stack behind it.
+      const { GitHubPreview } = await import('./githubPreview');
       GitHubPreview.show(context, log, doc, provider.onDidChangeActiveDocument);
     })
   );

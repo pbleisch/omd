@@ -62,6 +62,26 @@ const panelOptions = {
 };
 
 /**
+ * Sidecar bundles: the heavy feature libraries, each self-contained under its own global, loaded
+ * by a webview only when a document actually uses one (`src/webview/lazy/sidecar.ts`). Mermaid
+ * needs no entry here — `copyHostAssets` already ships its standalone runtime for the export path,
+ * and the webviews load that same file.
+ *
+ * Not esbuild code splitting: that needs `format: 'esm'`, whose chunks the browser fetches with no
+ * nonce, so it would force widening the webviews' `script-src 'nonce-…'` CSP. Separate IIFE
+ * bundles load under the *unchanged* policy — and measured smaller, because splitting hoists
+ * everything shared between eager and lazy code back into the eager entry.
+ */
+const sidecarOptions = (entry, outfile, globalName) => ({
+  ...options,
+  entryPoints: [resolve(__dirname, entry)],
+  outfile: resolve(__dirname, outfile),
+  globalName
+});
+const shikiOptions = sidecarOptions('src/webview/lazy/shiki.ts', 'media/omd-shiki.js', 'omdShiki');
+const chartOptions = sidecarOptions('src/webview/lazy/chart.ts', 'media/omd-chart.js', 'omdChart');
+
+/**
  * The extension host, bundled to a single CommonJS file so the packaged .vsix ships no
  * node_modules (the whole dependency tree is baked in here, ~200 MB → a few MB). `vscode` is the
  * one external — it's provided by the runtime, not npm. `main` in package.json points at this file.
@@ -86,12 +106,18 @@ if (watch) {
   await fixtureCtx.watch();
   const panelCtx = await esbuild.context(panelOptions);
   await panelCtx.watch();
+  for (const sidecar of [shikiOptions, chartOptions]) {
+    const ctx = await esbuild.context(sidecar);
+    await ctx.watch();
+  }
   const hostCtx = await esbuild.context(hostOptions);
   await hostCtx.watch();
-  console.log('[omd] webview + panel + host watch started');
+  console.log('[omd] webview + panel + sidecars + host watch started');
 } else {
   await esbuild.build(options);
   await esbuild.build(fixtureOptions);
   await esbuild.build(panelOptions);
+  await esbuild.build(shikiOptions);
+  await esbuild.build(chartOptions);
   await esbuild.build(hostOptions);
 }

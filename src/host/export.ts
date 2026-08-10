@@ -1,6 +1,7 @@
 import { splitThreads } from '../shared/threads';
-import { tex2svg } from './math-svg';
-import { renderGitHubHtml, SHIKI_CSS } from '../shared/github-render';
+import { mathRenderer } from './math-svg';
+import { renderGitHubHtml } from '../shared/github-render';
+import { SHIKI_CSS } from '../shared/shiki-css';
 import { omdBlocksRemark, OMD_EXPORT_CSS } from '../shared/omd-blocks';
 import { sanitizeExportHtml } from './sanitize-html';
 
@@ -29,7 +30,8 @@ export async function markdownToHtmlFragment(
   repoSlug?: { owner: string; repo: string }
 ): Promise<string> {
   const rendered = await renderGitHubHtml(markdown, {
-    renderMath: (tex, display) => tex2svg(tex, display),
+    // MathJax is loaded here, and only for a document that actually has math.
+    renderMath: await mathRenderer(markdown),
     extraRemarkPlugins: [omdBlocksRemark],
     repoSlug
   });

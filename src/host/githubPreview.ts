@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
-import { renderGitHubHtml, SHIKI_CSS } from '../shared/github-render';
+import { SHIKI_CSS } from '../shared/shiki-css';
 import { splitThreads } from '../shared/threads';
-import { tex2svg } from './math-svg';
 import { githubSlug } from './github';
 import { githubCss } from './exportCommand';
 
@@ -96,8 +95,14 @@ export class GitHubPreview {
     try {
       const { body } = splitThreads(this.doc.getText());
       const repoSlug = (await githubSlug(this.doc)) ?? undefined;
+      // The render stack (remark, Shiki grammars, MathJax) loads on the first render, not at
+      // activation — opening a document must not pay for a preview nobody asked for.
+      const [{ renderGitHubHtml }, { mathRenderer }] = await Promise.all([
+        import('../shared/github-render'),
+        import('./math-svg')
+      ]);
       let html = await renderGitHubHtml(body, {
-        renderMath: (tex, display) => tex2svg(tex, display),
+        renderMath: await mathRenderer(body),
         repoSlug
       });
       html = this.rewriteLocalImages(html);

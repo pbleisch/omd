@@ -7,6 +7,10 @@ media/webview.js
 media/webview.js.map
 media/panel.js
 media/panel.js.map
+media/omd-shiki.js
+media/omd-shiki.js.map
+media/omd-chart.js
+media/omd-chart.js.map
 *.vsix
 .DS_Store
 dev/fixture.js
