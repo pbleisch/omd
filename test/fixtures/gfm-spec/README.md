@@ -5,7 +5,7 @@ suite — the conformance corpus GitHub's own renderer is tested against.
 
 - **Source:** [`github/cmark-gfm`](https://github.com/github/cmark-gfm) → `test/spec.txt`
 - **Version:** GFM 0.29 (dated 2019-04-06) — the currently published GFM spec.
-- **Format:** each example is fenced with `` ```…``` example[ <extension>] ``, the markdown input and
+- **Format:** each example is fenced with ` ```…``` example[ <extension>] `, the markdown input and
   expected HTML separated by a lone `.`. A `→` stands for a TAB (the CommonMark convention). Examples
   tagged `disabled` are skipped. Parsed by [`../../helpers/gfm-spec.ts`](../../helpers/gfm-spec.ts).
 

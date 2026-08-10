@@ -95,9 +95,28 @@ describe('#30: escapes survive a save even when the text node ends in whitespace
   });
 
   it('`\\[not a ref]` stays literal text', async () => {
-    expect(await roundTrip('see `a` \\[not a ref] `b` here\n')).toBe(
-      'see `a` \\[not a ref] `b` here\n'
-    );
+    // The backslash itself is no longer written out: nothing on this line can turn the
+    // brackets into a link, so the escape is dropped as one the document does not need
+    // (#37). What #30 is about is the *meaning*, and it is unchanged — assert that
+    // directly rather than trusting the spelling.
+    const output = await roundTrip('see `a` \\[not a ref] `b` here\n');
+    expect(output).toBe('see `a` [not a ref] `b` here\n');
+    const { handle } = await mountEditor(output);
+    const types: string[] = [];
+    handle.getView().state.doc.descendants((node) => {
+      types.push(node.type.name, ...node.marks.map((m) => m.type.name));
+      return true;
+    });
+    expect(types).not.toContain('link');
+    expect(handle.getView().state.doc.textContent).toContain('[not a ref]');
+  });
+
+  it('keeps the escape where dropping it would make a link', async () => {
+    // The other half: here the brackets *can* form a link, so the backslash stays.
+    // (remark also escapes the `(`, which is its own belt-and-braces, and stable.)
+    const output = await roundTrip('see \\[not a ref](x) here\n');
+    expect(output).toContain('\\[not a ref]');
+    expect(await roundTrip(output)).toBe(output);
   });
 
   it('`\\<div>` stays literal text and does not become inline HTML', async () => {
@@ -149,9 +168,18 @@ describe('#30: the restored escapes are a fixed point, not a ratchet', () => {
     // re-slice: restoring `state.safe()` means more text carries a backslash, and a backslash next
     // to an entity used to grow without bound. #29 made that scan escape-aware, so the two fixes
     // compose — the escape is preserved *and* stable.
-    const md = 'a \\[x] &amp; b\n';
+    const md = 'a \\*x\\* &amp; b\n';
     const gen2 = await roundTrip(md);
     expect(gen2).toBe(md);
+    expect(await roundTrip(gen2)).toBe(gen2);
+  });
+
+  it('holds next to an entity for an escape that is dropped as unneeded', async () => {
+    // `\[x]` cannot form a link here, so #37 drops the backslash — once. The doubling bug
+    // this guards was about *growth*, so what matters is that the second generation is a
+    // fixed point and no backslash is ever added back.
+    const gen2 = await roundTrip('a \\[x] &amp; b\n');
+    expect(gen2).toBe('a [x] &amp; b\n');
     expect(await roundTrip(gen2)).toBe(gen2);
   });
 });
@@ -189,4 +217,30 @@ describe('#30: what the Milkdown bypass was protecting — whitespace is unaffec
       expect(await roundTrip(md)).toBe(expected[md]);
     });
   }
+});
+
+/**
+ * #32: an empty list item is empty. Milkdown spells an empty paragraph `<br />` on the way
+ * out, which turned `1.` in the repository's own bug-report template into `1. <br />` —
+ * content invented in a file nobody edited. Its parse plugin *deletes* `<br />` nodes on
+ * the way in, so the two spellings are the same document and `1.` is the one a writer meant.
+ */
+describe('#32: an empty list item does not gain a line break', () => {
+  it('leaves empty ordered items empty', async () => {
+    expect(await roundTrip('## Steps\n\n1.\n2.\n3.\n')).toBe('## Steps\n\n1.\n2.\n3.\n');
+  });
+
+  it('leaves empty bullet items empty', async () => {
+    expect(await roundTrip('-\n-\n')).toBe('-\n-\n');
+  });
+
+  it('still carries the content of a non-empty item', async () => {
+    expect(await roundTrip('1. one\n2.\n3. three\n')).toBe('1. one\n2.\n3. three\n');
+  });
+
+  it('still preserves a blank line between two root blocks', async () => {
+    // The `<br />` spelling is what Milkdown's preserve-empty-line feature is *for*; only
+    // the list-item case is suppressed.
+    expect(await roundTrip('a\n\n<br />\n\nb\n')).toBe('a\n\n<br />\n\nb\n');
+  });
 });

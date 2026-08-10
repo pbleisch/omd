@@ -38,6 +38,23 @@ All notable changes to OMD are documented here. The format is based on
 
 ### Fixed
 
+- **Files no longer come back with backslashes they never had.** remark escapes a character
+  whenever it *could* begin a construct, judged from one text node and one character of
+  lookahead, so `~430 ms` came back `\~430 ms`, a literal ` ``` ` in prose came back
+  `` \`\`\` ``, and `## [Unreleased]` came back `## \[Unreleased]`. All three render
+  identically on GitHub and all three made an untouched file diff-dirty on save. The whole
+  document is available after serialization, and whether a construct can form there is
+  decidable from the container it sits in — a tilde needs an opening run that reaches a
+  closing run of the same size, a backtick run needs another run of the same width, a bracket
+  needs a `]` followed by `(`, `[`, or `:`. Escapes that survive those tests are dropped;
+  everything else, including every escape inside a code span or fence, is left alone.
+  ([#37](https://github.com/pbleisch/omd/issues/37),
+  [#32](https://github.com/pbleisch/omd/issues/32))
+- **An empty list item stays empty.** Milkdown spells an empty paragraph `<br />` on the way
+  out, so the bare `1.` `2.` `3.` of a bug-report template came back as `1. <br />` — content
+  invented in a file nobody edited. Its parse side *deletes* `<br />` nodes, so the two
+  spellings are the same document; the one a writer meant is now the one written.
+  ([#32](https://github.com/pbleisch/omd/issues/32))
 - **Text holding both an HTML entity and a backslash escape no longer grows on every save.** The
   entity plugin preserves a writer's `&amp;` spelling by re-reading the raw source bytes for the
   text run around it, but that raw slice still carried the backslash escapes the parser had already
