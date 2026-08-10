@@ -58,7 +58,10 @@ the real host.
 
 1. **The round-trip is sacred.** Every on-disk construct gets a byte-for-byte round-trip test (open →
    save → assert identical after whitespace normalization, `src/shared/roundtrip.ts`). A change that
-   makes a clean file diff-dirty on open is a bug, not a style nit.
+   makes a clean file diff-dirty on open is a bug, not a style nit. Plugins that preserve a writer's
+   exact bytes by re-slicing the source (entities, autolinks, `<br>`) need the test to *iterate*
+   several generations: a slice that reintroduces something the parser already consumed can be
+   stable for one round trip and then grow without bound, which a single assertion misses.
 2. **You edit the document, never its source.** Nothing with a rendered form shows as raw markup.
 3. **Host ↔ editor communicate only through `src/shared/messages.ts`.** Every privileged action is a
    request to the host, which validates and performs it.

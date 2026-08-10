@@ -16,8 +16,11 @@ import { $nodeSchema, $remark } from '@milkdown/utils';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MdNode = { type: string; value?: string; children?: any[]; position?: any; [k: string]: any };
 
-/** Named (`&copy;`), decimal (`&#35;`), or hex (`&#x2A;`) reference. */
-const ENTITY = /&(?:#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);/g;
+/** Named (`&copy;`), decimal (`&#35;`), or hex (`&#x2A;`) reference, anchored for a scan. */
+const ENTITY_AT = /^&(?:#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);/;
+
+/** The ASCII punctuation CommonMark lets a backslash escape. */
+const ESCAPABLE = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/;
 
 /** Decode a single entity to its character, via the browser's own parser (jsdom in tests). */
 function decodeEntity(raw: string): string {
@@ -26,19 +29,43 @@ function decodeEntity(raw: string): string {
   return el.value || raw;
 }
 
-/** Split a text node's source into text + `omdEntity` parts, or null if it has no entities. */
+/**
+ * Split a text node's source into text + `omdEntity` parts, or null if it has no entities.
+ *
+ * The scan has to be escape-aware, because the source is *raw* bytes: the parser had already
+ * consumed the backslash escapes that are still sitting in it. Carrying an escape through into a
+ * text part's `value` turns it into literal backslash *content*, which the serializer then escapes
+ * again — so the run grows a backslash every save, forever (issue #29). Resolving `\x` → `x` here
+ * puts the text parts back in the parser's own decoded form, which serializes back to `\x`.
+ *
+ * A backslash also suppresses what follows it, so `\&amp;` is an escaped `&` and not an entity at
+ * all — the same reason the scan can't be a plain regex sweep.
+ */
 function splitEntities(source: string): MdNode[] | null {
-  const matches = [...source.matchAll(ENTITY)];
-  if (matches.length === 0) return null;
   const parts: MdNode[] = [];
-  let last = 0;
-  for (const m of matches) {
-    const at = m.index ?? 0;
-    if (at > last) parts.push({ type: 'text', value: source.slice(last, at) });
-    parts.push({ type: 'omdEntity', raw: m[0], char: decodeEntity(m[0]) });
-    last = at + m[0].length;
+  let text = '';
+  let found = false;
+  for (let i = 0; i < source.length; ) {
+    const ch = source[i];
+    if (ch === '\\' && i + 1 < source.length && ESCAPABLE.test(source[i + 1])) {
+      text += source[i + 1]; // escaped: literal char, and can't open an entity
+      i += 2;
+      continue;
+    }
+    const entity = ch === '&' ? ENTITY_AT.exec(source.slice(i)) : null;
+    if (entity) {
+      if (text) parts.push({ type: 'text', value: text });
+      text = '';
+      parts.push({ type: 'omdEntity', raw: entity[0], char: decodeEntity(entity[0]) });
+      found = true;
+      i += entity[0].length;
+      continue;
+    }
+    text += ch;
+    i += 1;
   }
-  if (last < source.length) parts.push({ type: 'text', value: source.slice(last) });
+  if (!found) return null;
+  if (text) parts.push({ type: 'text', value: text });
   return parts;
 }
 
