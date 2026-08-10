@@ -34,7 +34,7 @@ identically; only the markdown bytes change:
 | Bullet markers | `-` | `* a`, `+ a` → `- a` |
 | Ordered-list markers | `1.` (dot), leading zeros stripped | `1) a` → `1. a`; `003.` → `3.` |
 | Thematic breaks | `---`, but `***` as the first block | `***`, `___`, `- - -` → `---`; a leading `---` → `***` |
-| Code blocks | fenced (```) | a 4-space-indented block → a ```` ``` ```` fence |
+| Code blocks | fenced (```) | a 4-space-indented block → a ` ``` ` fence |
 | Tabs | spaces | leading/though-line tabs are expanded |
 | Reference-style links & images | inline | `[foo][bar]` + `[bar]: /url` → `[foo](/url)` (see below) |
 

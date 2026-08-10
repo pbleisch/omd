@@ -54,9 +54,12 @@ round-trips — verify those in the Extension Development Host.
 
 ## Round-trip fidelity notes
 
-The round-trip is enforced by the test corpus, which boots the real editor in jsdom and asserts
-open→save is byte-identical after whitespace normalization (`src/shared/roundtrip.ts`). Non-obvious
-invariants already in place:
+The round-trip is enforced by `test/roundtrip.test.ts`, which boots the real editor in jsdom and
+makes two assertions per document: open→save is byte-identical after whitespace normalization
+(`src/shared/roundtrip.ts`), **and** the output re-parses to the same document. It runs both over
+`test/corpus/` and over every `.md` file in this repository — so the docs you are reading are part
+of the gate, and a serializer regression shows up as a failing file rather than waiting for someone
+to remember a corpus case. Non-obvious invariants already in place:
 
 - The serializer is configured to GFM conventions (`-` bullets, `---` rules, one-space list indent).
 - Milkdown stored list `spread` as a truthy *string*, forcing every list loose; it's now a faithful

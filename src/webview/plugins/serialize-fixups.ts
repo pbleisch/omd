@@ -5,6 +5,8 @@
  */
 
 import { emojiChar } from '../ui/emoji-data';
+import { codeSpanRanges, FENCE_CLOSE, FENCE_LINE } from './md-scan';
+import { relaxEscapes } from './relax-escapes';
 
 const ALERT_KINDS = 'NOTE|TIP|IMPORTANT|WARNING|CAUTION';
 // remark escapes the `[` in a blockquote as `\[`, which stops GitHub from recognizing
@@ -26,11 +28,6 @@ function unescapeEmojiShortcodes(markdown: string): string {
     return emojiChar(name) ? `:${name}:` : whole;
   });
 }
-
-// A fence opener/closer: up to three spaces of indent, then a run of 3+ backticks or tildes.
-const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})/;
-// A fence closer carries nothing but the marker run (an info string is opener-only).
-const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*$/;
 
 /**
  * Apply `transform` to the prose of `markdown`, never to code. A fixup unescapes a
@@ -75,57 +72,23 @@ function replaceOutsideCode(markdown: string, transform: (prose: string) => stri
   return out.join('\n');
 }
 
-/**
- * Apply `transform` to everything outside an inline code span, following CommonMark's
- * rule: a run of N backticks opens a span that the next run of exactly N backticks
- * closes; a run with no matching closer is literal text. A backslash-escaped backtick
- * (`` \` `` — how the serializer emits a literal one) never opens a span, but backslashes
- * are *not* escapes inside a span, so the closer search reads them literally.
- */
+/** Apply `transform` to everything outside an inline code span (`codeSpanRanges`). */
 function replaceOutsideCodeSpans(text: string, transform: (prose: string) => string): string {
   let out = '';
   let proseStart = 0;
-  let i = 0;
-  while (i < text.length) {
-    if (text[i] === '\\') {
-      i += 2;
-      continue;
-    }
-    if (text[i] !== '`') {
-      i += 1;
-      continue;
-    }
-    const openStart = i;
-    while (text[i] === '`') i += 1;
-    const width = i - openStart;
-
-    let j = i;
-    let closeEnd = -1;
-    while (j < text.length) {
-      if (text[j] !== '`') {
-        j += 1;
-        continue;
-      }
-      const runStart = j;
-      while (text[j] === '`') j += 1;
-      if (j - runStart === width) {
-        closeEnd = j;
-        break;
-      }
-    }
-    if (closeEnd === -1) continue; // an unmatched run: literal text, keep scanning after it
-
+  for (const [openStart, closeEnd] of codeSpanRanges(text)) {
     out += transform(text.slice(proseStart, openStart)) + text.slice(openStart, closeEnd);
     proseStart = closeEnd;
-    i = closeEnd;
   }
   return out + transform(text.slice(proseStart));
 }
 
 export function applySerializeFixups(markdown: string): string {
-  return replaceOutsideCode(markdown, (prose) =>
+  const fixed = replaceOutsideCode(markdown, (prose) =>
     unescapeEmojiShortcodes(
       prose.replace(ESCAPED_ALERT, '[!$1]').replace(ESCAPED_WIKILINK, '[[$1]]')
     )
   );
+  // Last, so it judges the bytes that are actually about to be written.
+  return relaxEscapes(fixed);
 }

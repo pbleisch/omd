@@ -56,17 +56,33 @@ the real host.
 
 ## Hard gates (non-negotiable)
 
-1. **The round-trip is sacred.** Every on-disk construct gets a byte-for-byte round-trip test (open →
-   save → assert identical after whitespace normalization, `src/shared/roundtrip.ts`). A change that
-   makes a clean file diff-dirty on open is a bug, not a style nit. Plugins that preserve a writer's
-   exact bytes by re-slicing the source (entities, autolinks, `<br>`) need the test to *iterate*
-   several generations: a slice that reintroduces something the parser already consumed can be
-   stable for one round trip and then grow without bound, which a single assertion misses. And
-   stable bytes are not enough on their own: the output has to *re-parse to the same document*.
-   Bytes that mean something else on reopen (a leading `---` becoming front matter, a dropped
-   escape splitting a table row) pass the byte assertion and still destroy the file — assert the
-   parse too. Serializer-side guards for that live in
-   `src/webview/plugins/stringify-handlers.ts`.
+1. **The round-trip is sacred.** `test/roundtrip.test.ts` asserts two things about every document
+   it is given, and it is given **every `.md` file in this repository**, not only the hand-written
+   constructs in `test/corpus/`:
+
+   - **bytes** — open → save comes back identical after whitespace normalization
+     (`src/shared/roundtrip.ts`). A change that makes a clean file diff-dirty on open is a bug, not
+     a style nit.
+   - **parse** — the output re-parses to the *same document*. Stable bytes are not enough on their
+     own: bytes that mean something else on reopen (a leading `---` becoming front matter, a dropped
+     escape splitting a table row) pass the byte assertion and still destroy the file.
+
+   So adding a document to this repository extends the gate, and a serializer regression is caught
+   by the project's own prose rather than by whoever remembers to write a corpus case. A new
+   on-disk construct still earns its own focused case — the repository's prose is a floor, not a
+   specification.
+
+   Plugins that preserve a writer's exact bytes by re-slicing the source (entities, autolinks,
+   `<br>`) need their test to *iterate* several generations: a slice that reintroduces something the
+   parser already consumed can be stable for one round trip and then grow without bound, which a
+   single assertion misses. Serializer-side guards live in
+   `src/webview/plugins/stringify-handlers.ts`; `src/webview/plugins/relax-escapes.ts` is the
+   opposite direction — it drops escapes the document can prove it does not need, and every rule
+   there needs the case where the escape must *stay*.
+
+   Three byte-level details mdast does not model are known gaps, tracked rather than fixed: blank
+   lines between flow siblings (#11), inline code delimiter width (#38), and list-item continuation
+   indent (#39).
 2. **You edit the document, never its source.** Nothing with a rendered form shows as raw markup.
 3. **Host ↔ editor communicate only through `src/shared/messages.ts`.** Every privileged action is a
    request to the host, which validates and performs it.

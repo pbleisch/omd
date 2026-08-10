@@ -8,8 +8,8 @@
  * own handler table.
  */
 
-import type { Handle } from 'mdast-util-to-markdown';
-import type { ThematicBreak, Text, Parents } from 'mdast';
+import { defaultHandlers, type Handle } from 'mdast-util-to-markdown';
+import type { ThematicBreak, Text, Paragraph, Parents } from 'mdast';
 
 /**
  * A document-initial thematic break must not be spelled `---` (#23).
@@ -60,8 +60,34 @@ export const thematicBreakHandler: Handle = (
 export const textHandler: Handle = (node: Text, _parent, state, info) =>
   state.safe(node.value, { ...info, encode: [] });
 
+/**
+ * An empty list item stays empty (#32).
+ *
+ * Milkdown represents a blank line as an empty paragraph and spells it `<br />` on the way
+ * out (`@milkdown/preset-commonmark`'s paragraph runner, guarded by its
+ * `remark-preserve-empty-line` plugin). A list item with no content — `1.` on its own line
+ * in a bug-report template — parses to a list item whose only child is that empty
+ * paragraph, so it came back as `1. <br />`: three characters of content the writer never
+ * typed, in a file nobody edited.
+ *
+ * Nothing is lost by dropping it. The same plugin *deletes* `<br />` nodes on the way in,
+ * so `1.` and `1. <br />` parse to exactly the same document; the two spellings are
+ * indistinguishable by the time this runs, and `1.` is the one a writer meant. Empty
+ * paragraphs elsewhere — between two blocks at the document root — still get their
+ * `<br />`, which is what that feature is for.
+ */
+export const paragraphHandler: Handle = (node: Paragraph, parent, state, info) => {
+  // Milkdown leaves `children` unset on a paragraph it never added a child to.
+  const only = node.children?.length === 1 ? node.children[0] : undefined;
+  if (parent?.type === 'listItem' && only?.type === 'html' && only.value.trim() === '<br />') {
+    return '';
+  }
+  return defaultHandlers.paragraph(node, parent, state, info);
+};
+
 /** The handler table OMD layers over Milkdown's. */
 export const omdStringifyHandlers = {
   thematicBreak: thematicBreakHandler,
-  text: textHandler
+  text: textHandler,
+  paragraph: paragraphHandler
 };
