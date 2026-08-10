@@ -46,7 +46,21 @@ All notable changes to OMD are documented here. The format is based on
   now escape-aware: `\x` resolves to `x` as the parser resolves it, and a backslash suppresses what
   follows, so `\&amp;` reads as an escaped ampersand rather than an entity. Entity spelling is still
   preserved byte-for-byte.
-
+- **A document no longer reopens as front matter.** A thematic break on the first line was written
+  `---`, and YAML front matter opens on any `---` at line 1 and closes on the next one anywhere
+  later — prose and blank lines in between are not checked. So a document that began with a
+  thematic break and contained any later `---` was one save away from re-parsing as a single front
+  matter node and ceasing to be prose. The bytes round-tripped perfectly; only their meaning was
+  destroyed. A document-initial thematic break is now written `***`, which GitHub renders
+  identically and which cannot open front matter; every other position keeps `---`. Real front
+  matter is untouched. ([#23](https://github.com/pbleisch/omd/issues/23))
+- **Escaped characters survive a save.** Text with no `*`, `_` or `\` that ended in whitespace was
+  written out unescaped, so a backslash the writer typed was silently dropped: an escaped pipe in a
+  table cell lost its escape and the row gained a column on reopen, `\[not a ref]` became a link
+  reference candidate, and `\<div>` turned literal text into inline HTML — including in OMD's own
+  `docs/contributing/AUTHORING-SMART-BLOCKS.md`. Text is now always escaped through remark's
+  `safe()`. Whitespace, including trailing spaces and hard breaks, is unaffected.
+  ([#30](https://github.com/pbleisch/omd/issues/30))
 - **Undo no longer flashes the document.** A document pushed from the host used to be applied by
   replacing the whole document: every block was re-parsed and re-rendered, every node view
   (diagram, chart, callout, code block) was torn down and rebuilt, and the selection went with it

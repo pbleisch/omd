@@ -61,7 +61,12 @@ the real host.
    makes a clean file diff-dirty on open is a bug, not a style nit. Plugins that preserve a writer's
    exact bytes by re-slicing the source (entities, autolinks, `<br>`) need the test to *iterate*
    several generations: a slice that reintroduces something the parser already consumed can be
-   stable for one round trip and then grow without bound, which a single assertion misses.
+   stable for one round trip and then grow without bound, which a single assertion misses. And
+   stable bytes are not enough on their own: the output has to *re-parse to the same document*.
+   Bytes that mean something else on reopen (a leading `---` becoming front matter, a dropped
+   escape splitting a table row) pass the byte assertion and still destroy the file — assert the
+   parse too. Serializer-side guards for that live in
+   `src/webview/plugins/stringify-handlers.ts`.
 2. **You edit the document, never its source.** Nothing with a rendered form shows as raw markup.
 3. **Host ↔ editor communicate only through `src/shared/messages.ts`.** Every privileged action is a
    request to the host, which validates and performs it.

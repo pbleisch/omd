@@ -33,13 +33,20 @@ identically; only the markdown bytes change:
 | ATX closing hashes | dropped | `# Heading #` → `# Heading` |
 | Bullet markers | `-` | `* a`, `+ a` → `- a` |
 | Ordered-list markers | `1.` (dot), leading zeros stripped | `1) a` → `1. a`; `003.` → `3.` |
-| Thematic breaks | `---` | `***`, `___`, `- - -` → `---` |
+| Thematic breaks | `---`, but `***` as the first block | `***`, `___`, `- - -` → `---`; a leading `---` → `***` |
 | Code blocks | fenced (```) | a 4-space-indented block → a ```` ``` ```` fence |
 | Tabs | spaces | leading/though-line tabs are expanded |
 | Reference-style links & images | inline | `[foo][bar]` + `[bar]: /url` → `[foo](/url)` (see below) |
 
 These are deliberate serializer settings, not bugs — OMD picks one house style so the on-disk form is
 consistent. If you author in these styles, expect a one-time normalization on first save.
+
+The thematic-break row has one exception, and it is a safety guard rather than a style choice. A
+`---` on line 1 opens YAML front matter, which then closes on the *next* `---` anywhere in the file —
+blank lines and prose in between are not checked, and the tokenizer has no option to make it
+stricter. A document that starts with a thematic break and contains any later `---` would therefore
+reopen as a single front matter node and stop being prose. So a document-initial thematic break is
+written `***`, which GitHub renders identically and which cannot open front matter (#23).
 
 ## Known gaps & edge cases
 
