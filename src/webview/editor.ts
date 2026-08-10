@@ -15,6 +15,7 @@ import { replaceAll, getMarkdown } from '@milkdown/utils';
 import { diffDocument } from './doc-diff';
 import { tightBulletList, tightListItem } from './plugins/tight-lists';
 import { applySerializeFixups } from './plugins/serialize-fixups';
+import { omdStringifyHandlers } from './plugins/stringify-handlers';
 import { calloutPlugin } from './plugins/callouts';
 import { taskListPlugin } from './plugins/task-lists';
 import { dateTokenPlugin } from './plugins/date-token';
@@ -111,6 +112,10 @@ export async function createOmdEditor(opts: OmdEditorOptions): Promise<OmdEditor
       // `***`->`---`, one-space list indent).
       ctx.update(remarkStringifyOptionsCtx, (prev) => ({
         ...prev,
+        // Layered over Milkdown's handler table: a document-initial thematic break must not
+        // be `---` (it reopens as front matter, #23), and text is always escaped through
+        // `state.safe()` (Milkdown's bypass drops escapes, #30). See stringify-handlers.ts.
+        handlers: { ...prev.handlers, ...omdStringifyHandlers },
         bullet: '-',
         bulletOrdered: '.',
         rule: '-',
