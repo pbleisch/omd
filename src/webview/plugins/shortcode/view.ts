@@ -23,7 +23,8 @@ import {
   saveTextFile,
   saveImageAsPng
 } from '../../blocks/block-actions';
-import Chart from 'chart.js/auto';
+import type Chart from 'chart.js/auto';
+import { loadChart } from '../../render/chart-runtime';
 import type { EditorView } from 'prosemirror-view';
 import { parseYouTubeId, youTubeThumbnail } from '../../blocks/media';
 import { buildResizeChrome, containerWidthOf, inlineEdit } from '../media/chrome';
@@ -102,6 +103,7 @@ class ContainerView implements NodeView {
   private active = 0;
   private canvas?: HTMLCanvasElement;
   private chart?: Chart;
+  private chartSeq = 0;
   private svgTimer?: ReturnType<typeof setTimeout>;
   private editingTab = false;
   private genericHeader?: HTMLElement;
@@ -319,16 +321,29 @@ class ContainerView implements NodeView {
       this.canvas.parentElement?.appendChild(note);
       return;
     }
-    // Defer a frame so the canvas has been laid out and Chart.js can size to its container.
+    // Defer a frame so the canvas has been laid out and Chart.js can size to its container, and
+    // fetch the Chart.js runtime on the way — it is only bundled for documents that draw one
+    // (docs/operations/PERFORMANCE.md). A redraw that lands first wins; this pass then drops.
+    const pass = ++this.chartSeq;
     requestAnimationFrame(() => {
-      if (!this.canvas || !this.canvas.isConnected) return;
-      try {
-        this.chart = new Chart(this.canvas, toChartConfig(type, data, String(params.title ?? '')));
-      } catch {
-        // No 2D context (e.g. a headless environment) — leave the data table as the fallback
-        // rather than tearing down the block.
-        this.dom.dataset.mode = 'data';
-      }
+      void loadChart().then(
+        (Chart) => {
+          if (pass !== this.chartSeq) return;
+          if (!this.canvas || !this.canvas.isConnected) return;
+          try {
+            this.chart = new Chart(this.canvas, toChartConfig(type, data, String(params.title ?? '')));
+          } catch {
+            // No 2D context (e.g. a headless environment) — leave the data table as the fallback
+            // rather than tearing down the block.
+            this.dom.dataset.mode = 'data';
+          }
+        },
+        () => {
+          // The runtime didn't load — same fallback: show the data table, which is the source
+          // of truth anyway, rather than an empty frame.
+          if (pass === this.chartSeq) this.dom.dataset.mode = 'data';
+        }
+      );
     });
   }
 

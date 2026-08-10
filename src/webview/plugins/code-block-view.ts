@@ -4,7 +4,7 @@ import { TextSelection } from 'prosemirror-state';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import type { Node as ProseNode } from 'prosemirror-model';
 import { codicon } from '../codicons';
-import { renderMermaid } from '../render/mermaid';
+import { renderMermaid, mermaidReady } from '../render/mermaid';
 import { blockActions, copySvgPreview, saveSvgPreview } from '../blocks/block-actions';
 
 /**
@@ -190,6 +190,15 @@ class CodeBlockView implements NodeView {
     if (!code) {
       this.preview.innerHTML = '<div class="omd-block-empty">Empty diagram</div>';
       return;
+    }
+    // The mermaid runtime loads on the first diagram in a session (docs/operations/PERFORMANCE.md).
+    // Only then — never on a redraw, which keeps the previous diagram up until the new one is
+    // ready — say the diagram is coming, so the block is never a silent empty frame.
+    if (!mermaidReady() && !this.preview.firstChild) {
+      const pending = document.createElement('div');
+      pending.className = 'omd-block-empty omd-block-pending';
+      pending.textContent = 'Rendering diagram…';
+      this.preview.appendChild(pending);
     }
     try {
       this.preview.innerHTML = await renderMermaid(code);

@@ -1,25 +1,12 @@
-import ts from 'shiki/langs/typescript.mjs';
-import js from 'shiki/langs/javascript.mjs';
-import tsx from 'shiki/langs/tsx.mjs';
-import jsx from 'shiki/langs/jsx.mjs';
-import json from 'shiki/langs/json.mjs';
-import html from 'shiki/langs/html.mjs';
-import css from 'shiki/langs/css.mjs';
-import python from 'shiki/langs/python.mjs';
-import bash from 'shiki/langs/bash.mjs';
-import markdown from 'shiki/langs/markdown.mjs';
-import yaml from 'shiki/langs/yaml.mjs';
-import rust from 'shiki/langs/rust.mjs';
-import go from 'shiki/langs/go.mjs';
-import sql from 'shiki/langs/sql.mjs';
-
 /**
- * The curated Shiki language set and fence-infostring aliases, shared by every place OMD
+ * The fence-infostring aliases for OMD's curated Shiki language set, shared by every place OMD
  * highlights code: the editor's inline decorations (`webview/highlight/shiki.ts`), the HTML export,
  * and the GitHub preview renderer (`shared/github-render.ts`). One source so they never drift.
  * Unknown languages fall back to plain (styled) text rather than failing.
+ *
+ * Deliberately data-free: the grammars themselves are ~1.2 MB and live in `shiki-grammars.ts`, so
+ * asking "is this fence a language I know?" costs nothing until something actually highlights.
  */
-export const SHIKI_LANGS = [ts, js, tsx, jsx, json, html, css, python, bash, markdown, yaml, rust, go, sql];
 
 /** The two GitHub themes OMD uses (imported by the environment that needs them). */
 export const SHIKI_THEMES = ['github-light-default', 'github-dark-default'] as const;

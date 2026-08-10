@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { exportToHtml } from './export';
 import { githubSlug } from './github';
 
 /**
@@ -67,6 +66,9 @@ export async function exportHtmlCommand(
       : undefined;
     const doc = await vscode.workspace.openTextDocument(target);
     const repoSlug = (await githubSlug(doc)) ?? undefined;
+    // The render pipeline (remark, Shiki grammars, MathJax) loads here rather than at activation:
+    // most sessions never export (docs/operations/PERFORMANCE.md).
+    const { exportToHtml } = await import('./export');
     const html = await exportToHtml(markdown, title, githubCss(mediaDir), mermaidRuntime, repoSlug);
     await vscode.workspace.fs.writeFile(dest, Buffer.from(html, 'utf8'));
     log.appendLine(`[export] wrote ${dest.fsPath}`);

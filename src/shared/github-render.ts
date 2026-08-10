@@ -11,7 +11,8 @@ import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
 import githubDark from 'shiki/themes/github-dark-default.mjs';
 import githubLight from 'shiki/themes/github-light-default.mjs';
 import { load as loadYaml } from 'js-yaml';
-import { SHIKI_LANGS, resolveLang } from './shiki-langs';
+import { resolveLang } from './shiki-langs';
+import { SHIKI_LANGS } from './shiki-grammars';
 import { slugify } from './diagnostics';
 import { WIKILINK_RE, parseWikilink } from './references';
 
@@ -289,15 +290,5 @@ function titleCaseAlertLabels(html: string): string {
   });
 }
 
-/**
- * CSS that pairs with the Shiki output (`defaultColor: false`): apply the light theme's inline
- * vars by default and the dark theme's under a dark color scheme. Injected by each surface's shell.
- */
-export const SHIKI_CSS = `
-.shiki, .shiki span { color: var(--shiki-light); background-color: var(--shiki-light-bg); }
-@media (prefers-color-scheme: dark) {
-  .shiki, .shiki span { color: var(--shiki-dark) !important; background-color: var(--shiki-dark-bg) !important; }
-}
-.shiki { padding: 16px; overflow: auto; border-radius: 6px; }
-.omd-frontmatter { margin-bottom: 16px; }
-`;
+/** The Shiki pairing CSS lives in its own module so a shell can use it without this renderer. */
+export { SHIKI_CSS } from './shiki-css';

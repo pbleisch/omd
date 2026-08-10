@@ -28,6 +28,12 @@ Two processes that talk **only** through `src/shared/messages.ts`:
 - **Editor / webview** (`src/webview/`, esbuild → `media/webview.js`) — a Milkdown/ProseMirror rich
   view over the same markdown. Plugins add capabilities; CSS ships as text, injected once.
 
+The heavy feature libraries (mermaid, Shiki, Chart.js, MathJax) are **not** in those bundles: each
+loads on first actual use, via a sidecar bundle in `media/` for the webview surfaces
+(`src/webview/lazy/sidecar.ts`) or a dynamic `import()` on the host. A static `import` of one puts
+megabytes back into every document's load — `test/lazy-libraries.test.ts` fails if that happens.
+Why sidecars and not esbuild splitting: [`docs/operations/PERFORMANCE.md`](docs/operations/PERFORMANCE.md).
+
 ## Commands
 
 ```bash

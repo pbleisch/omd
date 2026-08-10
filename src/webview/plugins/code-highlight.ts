@@ -9,6 +9,10 @@ import { ensureHighlighter, getHighlighter, resolveLang, currentTheme } from '..
  * betrays "shown rendered"). We overlay inline decorations rather than replacing the
  * node, so the code stays fully editable. Highlighting arrives asynchronously — until
  * the highlighter loads, code shows plain; when it's ready, `view()` kicks a re-render.
+ *
+ * The highlighter is only *asked for* once the document actually holds a fence in a language we
+ * know — a prose document never loads the Shiki sidecar at all. A fence typed later triggers the
+ * load then, from the plugin view's `update`.
  */
 const key = new PluginKey('omd-code-highlight');
 
@@ -40,6 +44,18 @@ function decorateBlock(code: string, lang: string, base: number, out: Decoration
   }
 }
 
+/** Does the document hold a fence in a language we can highlight? (What makes Shiki worth loading.) */
+function hasHighlightableCode(doc: ProseNode): boolean {
+  let found = false;
+  doc.descendants((node) => {
+    if (found) return false;
+    if (node.type.name !== 'code_block') return true;
+    if (resolveLang(node.attrs.language)) found = true;
+    return false;
+  });
+  return found;
+}
+
 function buildDecorations(doc: ProseNode): DecorationSet {
   if (!getHighlighter()) return DecorationSet.empty;
   const decos: Decoration[] = [];
@@ -57,11 +73,22 @@ export const codeHighlightPlugin = $prose(
     new Plugin({
       key,
       view(view) {
-        // Load the highlighter, then force a re-decoration once grammars are ready.
-        void ensureHighlighter().then(() => {
-          view.dispatch(view.state.tr.setMeta(key, 'ready'));
-        });
-        return {};
+        // Load the highlighter the first time there's something to highlight, then force a
+        // re-decoration once grammars are ready.
+        let requested = false;
+        const maybeLoad = (doc: ProseNode): void => {
+          if (requested || !hasHighlightableCode(doc)) return;
+          requested = true;
+          void ensureHighlighter().then(() => {
+            view.dispatch(view.state.tr.setMeta(key, 'ready'));
+          });
+        };
+        maybeLoad(view.state.doc);
+        return {
+          update(updated) {
+            maybeLoad(updated.state.doc);
+          }
+        };
       },
       props: {
         decorations(state) {
