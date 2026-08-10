@@ -38,6 +38,15 @@ All notable changes to OMD are documented here. The format is based on
 
 ### Fixed
 
+- **Text holding both an HTML entity and a backslash escape no longer grows on every save.** The
+  entity plugin preserves a writer's `&amp;` spelling by re-reading the raw source bytes for the
+  text run around it, but that raw slice still carried the backslash escapes the parser had already
+  consumed. They came back as literal backslash *content*, were escaped again on save, and doubled
+  every generation — so `a \&amp; b` reached 32 backslashes in five saves, unbounded. The scan is
+  now escape-aware: `\x` resolves to `x` as the parser resolves it, and a backslash suppresses what
+  follows, so `\&amp;` reads as an escaped ampersand rather than an entity. Entity spelling is still
+  preserved byte-for-byte.
+
 - **Undo no longer flashes the document.** A document pushed from the host used to be applied by
   replacing the whole document: every block was re-parsed and re-rendered, every node view
   (diagram, chart, callout, code block) was torn down and rebuilt, and the selection went with it

@@ -45,6 +45,31 @@ describe('entity round-trip', () => {
     expect(root.querySelector('.omd-entity')?.textContent).toBe('©');
   });
 
+  /**
+   * Issue #29: the raw source re-slice used to preserve entity spelling also carried the backslash
+   * escapes the parser had already consumed, so they re-entered as literal content and were escaped
+   * again on save — doubling every generation, unbounded. One round trip is not enough to catch it
+   * (some of these are stable between gen 0 and gen 1), so iterate.
+   */
+  describe('escapes next to an entity do not grow (issue #29)', () => {
+    const cases = [
+      'a \\&amp; b\n', // `\&` is an escaped ampersand, not an entity
+      'a \\* b &amp; c\n', // escape and entity in the same run
+      'a \\_x\\_ &copy;\n', // two escapes, one entity
+      'a \\* b\n', // control: escape, no entity
+      'plain &copy; only\n' // control: entity, no escape
+    ];
+    for (const md of cases) {
+      it(`${JSON.stringify(md)} is byte-stable over five generations`, async () => {
+        let current = md;
+        for (let generation = 1; generation <= 5; generation++) {
+          current = await roundTrip(current);
+          expect(normalizeMarkdown(current), `generation ${generation}`).toBe(normalizeMarkdown(md));
+        }
+      });
+    }
+  });
+
   it('leaves a bare & (not an entity) as ordinary text', async () => {
     expect(await nodeTypes('this & that\n')).not.toContain('omdEntity');
   });
