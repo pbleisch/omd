@@ -51,4 +51,39 @@ describe('normalizeMarkdown', () => {
   it('normalizes CRLF', () => {
     expect(normalizeMarkdown('a\r\nb')).toBe('a\nb\n');
   });
+
+  // #32: the delimiter row's *padding* was not normalized, only its dash count, so a compact
+  // hand-authored table read as divergent against remark's padded output and the host's loop
+  // guard rewrote a table nobody touched.
+  it('makes a compact delimiter row equal to remark padded output', () => {
+    const compact = '| a | b |\n|---|---|\n| 1 | 2 |\n';
+    const padded = '| a | b |\n| --- | --- |\n| 1 | 2 |\n';
+    expect(roundTripEqual(compact, padded)).toBe(true);
+  });
+  it('preserves alignment colons while normalizing delimiter padding', () => {
+    expect(normalizeMarkdown('|:--|--:|:-:|--|\n')).toBe('| :--- | ---: | :---: | --- |\n');
+    expect(roundTripEqual('|:---|---:|\n', '| :--- | ---: |\n')).toBe(true);
+    // Alignment itself is still meaningful: left-aligned is not right-aligned.
+    expect(roundTripEqual('|:---|\n', '|---:|\n')).toBe(false);
+  });
+  it('leaves a thematic break and front-matter fence alone', () => {
+    expect(normalizeMarkdown('---\ntitle: x\n---\n\nbody\n')).toBe('---\ntitle: x\n---\n\nbody\n');
+    expect(normalizeMarkdown('above\n\n---\n\nbelow\n')).toBe('above\n\n---\n\nbelow\n');
+  });
+  it('never touches a delimiter row inside a fenced code block', () => {
+    const fenced = '```\n|---|---|\n```\n';
+    expect(normalizeMarkdown(fenced)).toBe(fenced);
+    expect(roundTripEqual(fenced, '```\n| --- | --- |\n```\n')).toBe(false);
+  });
+});
+
+describe('round-trip: compact tables (#32)', () => {
+  it('a compact hand-authored table survives open -> save', async () => {
+    const md = '| a | b |\n|---|---|\n| 1 | 2 |\n';
+    expect(roundTripEqual(await roundTrip(md), md)).toBe(true);
+  });
+  it('a compact aligned table survives open -> save', async () => {
+    const md = '| left | right |\n|:---|---:|\n| 1 | 2 |\n';
+    expect(roundTripEqual(await roundTrip(md), md)).toBe(true);
+  });
 });

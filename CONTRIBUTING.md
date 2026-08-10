@@ -62,9 +62,11 @@ invariants already in place:
 - Milkdown stored list `spread` as a truthy *string*, forcing every list loose; it's now a faithful
   boolean, so tight and loose lists round-trip and task checkboxes survive (`plugins/tight-lists.ts`).
 - GitHub alert markers are unescaped (`\[!NOTE]` → `[!NOTE]`) so alerts render on GitHub
-  (`plugins/serialize-fixups.ts`).
-- Table delimiter dash-count and cell padding are made comparison-agnostic, so the host's loop guard
-  never rewrites an untouched table.
+  (`plugins/serialize-fixups.ts`). Every fixup there sees prose only — a backslash inside a code
+  span or fence is content the writer typed, not an escape the serializer added.
+- Table delimiter rows and cell padding are made comparison-agnostic (dash count *and* spacing, so a
+  compact `|---|---|` equals remark's `| --- | --- |`), so the host's loop guard never rewrites an
+  untouched table.
 - Math is a real schema node via `remark-math` (micromark tokenizes the LaTeX raw), not a decoration
   overlay — decorations mangle `\,` and `\int_` inside prose and break the round-trip.
 - Smart-block shortcodes are real schema nodes (`plugins/shortcode/`): a remark transformer folds
