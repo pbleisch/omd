@@ -21,7 +21,10 @@
 import { ASCII_PUNCTUATION, codeSpanRanges, FENCE_CLOSE, FENCE_LINE, TABLE_ROW } from './md-scan';
 
 /** The characters whose escape this pass may remove. */
-const RELAXABLE = new Set(['~', '`', '[']);
+const RELAXABLE = new Set(['~', '`', '[', '(']);
+
+/** Every character `RELAXABLE` covers, as an escape, for the cheap "is there anything to do" test. */
+const ANY_RELAXABLE_ESCAPE = /\\[~`[(]/;
 
 /**
  * A container with every backslash escape resolved, so the analysis reads the text the way
@@ -195,22 +198,121 @@ function relaxBackticks(container: Container, drop: Set<number>): void {
 
 /** A link definition (but not a footnote definition), which makes bare `[label]` a reference. */
 const DEFINITION_LINE = /^ {0,3}\[(?!\^)[^\]]*\]:/m;
-/** The three shapes that turn a `[` into a link, image, reference, or definition. */
-const LINKISH = /\]\(|\]\[|\]:/;
+/** Spaces, tabs and line endings, which a link tail may hold between its parts. */
+function skipTailSpace(text: string, index: number): number {
+  while (index < text.length && /[ \t\n]/.test(text[index])) index += 1;
+  return index;
+}
 
 /**
- * A bracket is escaped to stop it starting a link, image, reference, or definition. All
- * four need a `]` followed by `(`, `[`, or `:`; a footnote reference needs `[^`. When the
- * container has none of those, and the document defines no link labels, a `[` is text.
+ * The end of a link destination starting at `index`, or `-1` if the bytes there cannot be
+ * one. Two shapes (CommonMark "Links"): a pointy-bracket destination, which may not hold an
+ * unescaped `<`, `>` or a line ending; or a raw destination, which runs to the first space
+ * and must keep its parentheses balanced. A raw destination may be empty.
  */
-function relaxBrackets(container: Container, drop: Set<number>): void {
-  const { logical } = container;
-  if (container.documentHasDefinitions || LINKISH.test(logical.text)) return;
+function destinationEnd(logical: Logical, index: number): number {
+  const { text, escaped } = logical;
+  if (text[index] === '<' && !escaped[index]) {
+    for (let i = index + 1; i < text.length; i += 1) {
+      if (escaped[i]) continue;
+      if (text[i] === '>') return i + 1;
+      if (text[i] === '<' || text[i] === '\n') return -1;
+    }
+    return -1;
+  }
+  let depth = 0;
+  let i = index;
+  for (; i < text.length; i += 1) {
+    if (escaped[i]) continue;
+    if (/[ \t\n]/.test(text[i])) break;
+    if (text[i] === '(') depth += 1;
+    else if (text[i] === ')') {
+      if (depth === 0) break;
+      depth -= 1;
+    }
+  }
+  return depth === 0 ? i : -1;
+}
+
+/** The end of a `"…"`, `'…'` or `(…)` link title starting at `index`, or `-1`. */
+function titleEnd(logical: Logical, index: number): number {
+  const { text, escaped } = logical;
+  const open = text[index];
+  if (escaped[index] || (open !== '"' && open !== "'" && open !== '(')) return -1;
+  const close = open === '(' ? ')' : open;
+  for (let i = index + 1; i < text.length; i += 1) {
+    if (escaped[i]) continue;
+    if (text[i] === close) return i + 1;
+    if (open === '(' && text[i] === '(') return -1; // a title in parens may not nest one
+  }
+  return -1;
+}
+
+/**
+ * True when `](` at `index` really can close an inline link or image — i.e. a destination,
+ * an optional title and a `)` follow. This is the question remark cannot ask: it escapes
+ * every `[` and every `]`-adjacent `(` because one *might* be a link, and GFM example 337,
+ * `[a](url &quot;tit&quot;)`, is the case where one is not. `&quot;` is an entity, not the
+ * `"` that opens a title, so the tail is not a tail and the whole thing is literal text.
+ */
+function closesInlineLink(logical: Logical, index: number): boolean {
+  let i = skipTailSpace(logical.text, index + 2);
+  const destination = destinationEnd(logical, i);
+  if (destination < 0) return false;
+  i = skipTailSpace(logical.text, destination);
+  if (i > destination) {
+    const title = titleEnd(logical, i);
+    if (title >= 0) i = skipTailSpace(logical.text, title);
+  }
+  return logical.text[i] === ')' && !logical.escaped[i];
+}
+
+/**
+ * True when some `]` in the container could turn a `[` into a link, image, reference or
+ * definition: `][` and `]:` always can, and `](` can when a real tail follows it.
+ */
+function hasLinkClosing(logical: Logical): boolean {
   for (let i = 0; i < logical.text.length; i += 1) {
-    if (logical.text[i] !== '[' || !logical.escaped[i] || logical.code[i]) continue;
-    if (atLineStart(container, i)) continue; // could become a definition or a checkbox
-    if (logical.text[i + 1] === '^') continue; // a footnote reference
-    if (logical.text[i + 1] === '[' || logical.text[i - 1] === '[') continue; // a wikilink
+    if (logical.text[i] !== ']') continue;
+    const next = logical.text[i + 1];
+    if (next === '[' || next === ':') return true;
+    if (next === '(' && closesInlineLink(logical, i)) return true;
+  }
+  return false;
+}
+
+/** True when only blockquote markers, spaces and a list marker precede `index` on its line. */
+function atListMarker(container: Container, index: number): boolean {
+  if (container.inlineOnly) return false;
+  const text = container.logical.text;
+  const prefix = text.slice(text.lastIndexOf('\n', index - 1) + 1, index);
+  return /^[\s>]*(?:[-*+]|\d{1,9}[.)])[ \t]+$/.test(prefix);
+}
+
+/**
+ * A bracket is escaped to stop it starting a link, image, reference or definition, and a
+ * `(` right after a `]` is escaped for the same reason. All of those need a `]` that can
+ * close — followed by `(`, `[` or `:` — and a footnote reference needs `[^`. When the
+ * container has no such `]`, and the document defines no link labels, both characters are
+ * text. A `[` after a list marker still stays escaped: there it would become a task-list
+ * checkbox, which is not a link construct and so is not covered by that reasoning.
+ */
+function relaxLinkSyntax(container: Container, drop: Set<number>): void {
+  const { logical } = container;
+  if (container.documentHasDefinitions || hasLinkClosing(logical)) return;
+  for (let i = 0; i < logical.text.length; i += 1) {
+    if (!logical.escaped[i] || logical.code[i]) continue;
+    if (logical.text[i] === '(') {
+      // The only `(` remark escapes in prose is one after a `]` (`mdast-util-to-markdown`'s
+      // unsafe list); anything else carries a backslash the writer typed.
+      if (logical.text[i - 1] !== ']') continue;
+    } else if (logical.text[i] === '[') {
+      if (atListMarker(container, i)) continue; // could become a checkbox
+      if (logical.text[i + 1] === '^') continue; // a footnote reference
+      if (logical.text[i + 1] === '[' || logical.text[i - 1] === '[') continue; // a wikilink
+    } else {
+      continue;
+    }
     drop.add(logical.origin[i] - 1);
   }
 }
@@ -220,7 +322,7 @@ function markRun(logical: Logical, run: Run, drop: Set<number>): void {
 }
 
 function relaxContainer(raw: string, documentHasDefinitions: boolean, inlineOnly = false): string {
-  if (!/\\[~`[]/.test(raw)) return raw;
+  if (!ANY_RELAXABLE_ESCAPE.test(raw)) return raw;
   const logical = toLogical(raw);
   if (!logical.escaped.some((was, i) => was && RELAXABLE.has(logical.text[i]))) return raw;
 
@@ -228,7 +330,7 @@ function relaxContainer(raw: string, documentHasDefinitions: boolean, inlineOnly
   const drop = new Set<number>();
   relaxTildes(container, drop);
   relaxBackticks(container, drop);
-  relaxBrackets(container, drop);
+  relaxLinkSyntax(container, drop);
   if (drop.size === 0) return raw;
 
   let out = '';
@@ -267,7 +369,7 @@ function relaxTableRow(line: string, documentHasDefinitions: boolean): string {
  * individual cells.
  */
 export function relaxEscapes(markdown: string): string {
-  if (!/\\[~`[]/.test(markdown)) return markdown;
+  if (!ANY_RELAXABLE_ESCAPE.test(markdown)) return markdown;
   const documentHasDefinitions = DEFINITION_LINE.test(markdown);
 
   const out: string[] = [];

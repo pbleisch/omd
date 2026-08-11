@@ -89,6 +89,38 @@ describe('relax escapes: brackets', () => {
   });
 });
 
+/**
+ * GFM example 337. `](` alone is not enough to make a link: what follows it has to be a real
+ * destination-title-`)` tail. When it is not, neither the `[` nor the `(` needs its backslash —
+ * which is the whole of why the "Entity and numeric character references" round-trip baseline is
+ * back at 9 (`test/gfm-conformance.test.ts`).
+ */
+describe('relax escapes: a `](` that cannot close a link', () => {
+  it('drops both escapes when the tail is not a link tail', () => {
+    // `&quot;` is an entity, not the `"` that opens a title, so the destination is followed by
+    // junk rather than by a title and a `)`.
+    expect(relaxEscapes('\\[a]\\(url &quot;tit&quot;)\n')).toBe('[a](url &quot;tit&quot;)\n');
+    // An unterminated title, and a destination whose parentheses do not balance.
+    expect(relaxEscapes('see \\[a]\\(url "tit) here\n')).toBe('see [a](url "tit) here\n');
+    expect(relaxEscapes('see \\[a]\\(u(rl) here\n')).toBe('see [a](u(rl) here\n');
+  });
+
+  it('keeps both escapes when the tail IS a link tail', () => {
+    expect(relaxEscapes('\\[a]\\(url "tit")\n')).toBe('\\[a]\\(url "tit")\n');
+    expect(relaxEscapes('\\[a]\\(url)\n')).toBe('\\[a]\\(url)\n');
+    expect(relaxEscapes('\\[a]\\()\n')).toBe('\\[a]\\()\n');
+    expect(relaxEscapes('\\[a]\\(<u rl> \'tit\')\n')).toBe('\\[a]\\(<u rl> \'tit\')\n');
+    // A valid tail anywhere in the container keeps every escape in it, because unescaping a
+    // `[` can change which opener a later `]` binds to.
+    expect(relaxEscapes('\\[a] and \\[b]\\(c)\n')).toBe('\\[a] and \\[b]\\(c)\n');
+  });
+
+  it('leaves a `(` that remark did not escape for link reasons', () => {
+    // Not after a `]`, so the backslash is the writer's, not the serializer's.
+    expect(relaxEscapes('a literal \\(paren) here\n')).toBe('a literal \\(paren) here\n');
+  });
+});
+
 describe('relax escapes: code is never touched', () => {
   it('leaves a backslash inside a fenced block alone', () => {
     const fenced = '```\na \\~b and \\[c] and \\`d\n```\n';
