@@ -38,6 +38,20 @@ All notable changes to OMD are documented here. The format is based on
 
 ### Fixed
 
+- **Reference-style links survive opening a document.** `@milkdown/preset-commonmark` bundles
+  `remark-inline-links` as a *parse* plugin, so every `[label]: url` definition was deleted and
+  every `[ref]` rewritten to an inline link before the document reached the editor:
+  `[ref]: https://example.com` plus `[ref]` came back as `[ref](https://example.com)`. The
+  definitions block disappeared, a URL used from five places was duplicated five times, and the
+  single point of edit was gone — all at load time, in a file nobody had touched, with nothing a
+  serializer could do about it. That plugin is dropped, and definitions, link references
+  (`[ref]`, `[ref][]`, `[text][ref]`) and reference images (`![alt][ref]`) are now real schema
+  nodes: the definition keeps the exact bytes it was written with, down to a `<url>` in pointy
+  brackets or a `'`-quoted title, adjacent definitions stay adjacent, and label spelling and case
+  survive. A reference renders as a live link to its definition's target and a reference image as
+  a real image; a `[label]` with no definition is still ordinary prose, and stays ordinary prose
+  on save. Across the GFM spec suite this takes examples whose content a round trip changes from
+  106 to 20. ([#33](https://github.com/pbleisch/omd/issues/33))
 - **Files no longer come back with backslashes they never had.** remark escapes a character
   whenever it *could* begin a construct, judged from one text node and one character of
   lookahead, so `~430 ms` came back `\~430 ms`, a literal ` ``` ` in prose came back

@@ -83,6 +83,14 @@ the real host.
    Three byte-level details mdast does not model are known gaps, tracked rather than fixed: blank
    lines between flow siblings (#11), inline code delimiter width (#38), and list-item continuation
    indent (#39).
+
+   The CommonMark preset is used **filtered**, not whole: `remark-inline-links` is a *parse* plugin
+   that deletes every link definition and inlines every reference before the editor sees the
+   document, so `editor.ts` drops it and `plugins/reference-links.ts` holds the reference form
+   instead (#33). Restoring a bare `.use(commonmark)` silently reintroduces that data loss, and no
+   serializer change can undo it. Registering a new schema node in the `block` group ahead of the
+   preset is the other trap here: it becomes the schema's default block type, which is what an
+   empty document and every `setBlockType` fall back to. Register after, and assert it.
 2. **You edit the document, never its source.** Nothing with a rendered form shows as raw markup.
 3. **Host ↔ editor communicate only through `src/shared/messages.ts`.** Every privileged action is a
    request to the host, which validates and performs it.

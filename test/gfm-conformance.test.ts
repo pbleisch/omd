@@ -34,7 +34,10 @@ const ROUNDTRIP_BASELINE: Record<string, number> = {
   // not the `"` that opens a title — so neither character needs its backslash and the example
   // matches the spec source byte-for-byte again. The escapes elsewhere are untouched: a `](`
   // with a real tail still keeps them.
-  'Entity and numeric character references': 9,
+  // 9 -> 10 with #33: example 329 is `[foo]` plus `[foo]: /f&ouml;&ouml; "f&ouml;&ouml;"`, which
+  // only round-trips once the definition survives the parse *and* keeps its own bytes (remark
+  // re-spells a definition it re-serializes, and the entities are decoded in `url`/`title`).
+  'Entity and numeric character references': 10,
   'Raw HTML': 13,
   'Disallowed Raw HTML (extension)': 1
 };

@@ -182,6 +182,6 @@ bytes. That test suite is the enforcement of Principle 2, and the fastest way to
 feature hasn't quietly broken portability.
 
 The contract above is about OMD's *own* constructs. For where OMD **canonicalizes ordinary GFM
-syntax** on save (setext→ATX headings, `*`→`-` bullets, reference→inline links, …) — same rendered
+syntax** on save (setext→ATX headings, `*`→`-` bullets, `1)`→`1.` list markers, …) — same rendered
 output, different bytes — see the honest, spec-measured account in
 [`../operations/GFM-COMPATIBILITY.md`](../operations/GFM-COMPATIBILITY.md).
