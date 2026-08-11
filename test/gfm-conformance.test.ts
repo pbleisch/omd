@@ -27,15 +27,14 @@ const EXPORT_BASELINE: Record<string, number> = {
 };
 const ROUNDTRIP_BASELINE: Record<string, number> = {
   'HTML blocks': 29,
-  // was 2; the omdEntity plugin preserves entities. Then 9 -> 8 with the #30 fix: example 337
-  // (`[a](url &quot;tit&quot;)`, an *invalid* link that is literal text) now has its `[` and `(`
-  // escaped like every other text node, so it no longer matches the spec source byte-for-byte.
-  // That escaping is the fix — suppressing it is what dropped `\[not a ref]`. It is a one-time
-  // normalization, not a ratchet: the output is a fixed point from generation 2 onward (the
-  // escape-doubling next to an entity that #29 fixed is gone, and `#30: the restored escapes are
-  // a fixed point` covers it). Raising this to 9 means teaching the serializer that `[`/`(` in a
-  // text run that cannot form a link need no escape — a real improvement, not a revert.
-  'Entity and numeric character references': 8,
+  // was 2; the omdEntity plugin preserves entities. Then 9 -> 8 with the #30 fix, which escaped
+  // the `[` and `(` of example 337 (`[a](url &quot;tit&quot;)`, an *invalid* link that is literal
+  // text) like every other text node, and 8 -> 9 again once `relaxEscapes` learned to check
+  // whether a `](` can actually close an inline link. It cannot there — `&quot;` is an entity,
+  // not the `"` that opens a title — so neither character needs its backslash and the example
+  // matches the spec source byte-for-byte again. The escapes elsewhere are untouched: a `](`
+  // with a real tail still keeps them.
+  'Entity and numeric character references': 9,
   'Raw HTML': 13,
   'Disallowed Raw HTML (extension)': 1
 };
