@@ -2037,6 +2037,50 @@ body.omd-collapse-comments #omd-root {
 .omd-wikilink:hover {
   border-bottom-style: solid;
 }
+/* Reference-style links (#33). The reference reads as an ordinary link — it is one — with a
+   dotted underline marking that its target lives in a definition further down the file. */
+.omd-link-reference {
+  color: var(--vscode-textLink-foreground, #4daafc);
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
+  cursor: pointer;
+}
+.omd-link-reference:hover {
+  border-bottom-style: solid;
+}
+/* The definitions block is machinery, not prose: subdued, monospaced, out of the reading flow,
+   but with its URL still visible and reachable — it is the one place the target is edited. */
+.omd-definition {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground, #8b949e);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  align-items: baseline;
+  padding: 1px 0 1px 10px;
+  border-left: 2px solid var(--vscode-panel-border, #30363d);
+}
+/* Definitions sit adjacent on disk, so they read as one block here: only the first of a run
+   takes the usual block gap, and the run closes with one. */
+.omd-prose > .omd-definition {
+  margin: 0;
+}
+.omd-prose > .omd-definition:last-child,
+.omd-prose > .omd-definition:has(+ :not(.omd-definition)) {
+  margin-bottom: var(--omd-space-4);
+}
+.omd-definition-label {
+  color: var(--vscode-symbolIcon-keywordForeground, var(--vscode-descriptionForeground, #8b949e));
+}
+.omd-definition-url {
+  color: var(--vscode-textLink-foreground, #4daafc);
+  word-break: break-all;
+}
+.omd-definition-title {
+  font-style: italic;
+}
+
 /* Mentions and issues are real links already — these are just chips. */
 .omd-mention,
 .omd-issue {

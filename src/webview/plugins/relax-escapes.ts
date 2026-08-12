@@ -81,7 +81,8 @@ function toLogical(raw: string): Logical {
 interface Container {
   logical: Logical;
   inlineOnly: boolean;
-  documentHasDefinitions: boolean;
+  /** Every link label the document defines — a `[` bracketing one of these keeps its escape. */
+  definedLabels: Set<string>;
 }
 
 /** A maximal run of one character, and whether every character in it was escaped. */
@@ -197,7 +198,26 @@ function relaxBackticks(container: Container, drop: Set<number>): void {
 }
 
 /** A link definition (but not a footnote definition), which makes bare `[label]` a reference. */
-const DEFINITION_LINE = /^ {0,3}\[(?!\^)[^\]]*\]:/m;
+const DEFINITION_LINE = /^ {0,3}\[(?!\^)([^\]]*)\]:/gm;
+
+/** CommonMark's label matching: case-folded, with runs of whitespace collapsed to one space. */
+function normalizeLabel(label: string): string {
+  return label.trim().replace(/[\t\n\r ]+/g, ' ').toLowerCase();
+}
+
+/**
+ * Every link label the document defines. Scanned from the bytes rather than the AST because
+ * this pass runs on serializer *output*, after the document is already markdown — and it errs
+ * wide on purpose: a `[x]: y` inside a code fence is counted, which only ever keeps an escape
+ * that could have gone.
+ */
+function definedLabels(markdown: string): Set<string> {
+  const labels = new Set<string>();
+  DEFINITION_LINE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = DEFINITION_LINE.exec(markdown))) labels.add(normalizeLabel(match[1]));
+  return labels;
+}
 /** Spaces, tabs and line endings, which a link tail may hold between its parts. */
 function skipTailSpace(text: string, index: number): number {
   while (index < text.length && /[ \t\n]/.test(text[index])) index += 1;
@@ -290,16 +310,44 @@ function atListMarker(container: Container, index: number): boolean {
 }
 
 /**
+ * True when the `[` at `index` brackets a label the document defines. Dropping its escape
+ * would turn the text into a shortcut reference to that definition — a `[` whose label matches
+ * nothing cannot, however many definitions the document holds elsewhere (#33).
+ */
+function opensDefinedLabel(container: Container, index: number): boolean {
+  if (container.definedLabels.size === 0) return false;
+  const { text, escaped } = container.logical;
+  let label = '';
+  for (let i = index + 1; i < text.length; i += 1) {
+    if (escaped[i]) {
+      label += text[i];
+      continue;
+    }
+    if (text[i] === ']') return container.definedLabels.has(normalizeLabel(label));
+    if (text[i] === '[') return false; // a label may not hold an unescaped bracket
+    label += text[i];
+  }
+  return false; // never closed, so it is not a label at all
+}
+
+/**
  * A bracket is escaped to stop it starting a link, image, reference or definition, and a
  * `(` right after a `]` is escaped for the same reason. All of those need a `]` that can
  * close — followed by `(`, `[` or `:` — and a footnote reference needs `[^`. When the
- * container has no such `]`, and the document defines no link labels, both characters are
- * text. A `[` after a list marker still stays escaped: there it would become a task-list
- * checkbox, which is not a link construct and so is not covered by that reasoning.
+ * container has no such `]`, both characters are text. A `[` after a list marker still stays
+ * escaped: there it would become a task-list checkbox, which is not a link construct and so
+ * is not covered by that reasoning.
+ *
+ * The remaining shape is the *shortcut* reference, `[label]`, which needs no closing `]` of
+ * its own — only a matching definition somewhere in the document. That is checked per
+ * bracket against the labels the document actually defines, not per document: before #33 a
+ * loaded document never kept its definitions, so the whole-document guard was free; now that
+ * they survive, treating every bracket in a definition-bearing file as unrelaxable would put
+ * a backslash in front of every literal `[word]` in it.
  */
 function relaxLinkSyntax(container: Container, drop: Set<number>): void {
   const { logical } = container;
-  if (container.documentHasDefinitions || hasLinkClosing(logical)) return;
+  if (hasLinkClosing(logical)) return;
   for (let i = 0; i < logical.text.length; i += 1) {
     if (!logical.escaped[i] || logical.code[i]) continue;
     if (logical.text[i] === '(') {
@@ -310,6 +358,7 @@ function relaxLinkSyntax(container: Container, drop: Set<number>): void {
       if (atListMarker(container, i)) continue; // could become a checkbox
       if (logical.text[i + 1] === '^') continue; // a footnote reference
       if (logical.text[i + 1] === '[' || logical.text[i - 1] === '[') continue; // a wikilink
+      if (opensDefinedLabel(container, i)) continue; // would become a shortcut reference
     } else {
       continue;
     }
@@ -321,12 +370,12 @@ function markRun(logical: Logical, run: Run, drop: Set<number>): void {
   for (let i = run.start; i < run.start + run.length; i += 1) drop.add(logical.origin[i] - 1);
 }
 
-function relaxContainer(raw: string, documentHasDefinitions: boolean, inlineOnly = false): string {
+function relaxContainer(raw: string, labels: Set<string>, inlineOnly = false): string {
   if (!ANY_RELAXABLE_ESCAPE.test(raw)) return raw;
   const logical = toLogical(raw);
   if (!logical.escaped.some((was, i) => was && RELAXABLE.has(logical.text[i]))) return raw;
 
-  const container: Container = { logical, inlineOnly, documentHasDefinitions };
+  const container: Container = { logical, inlineOnly, definedLabels: labels };
   const drop = new Set<number>();
   relaxTildes(container, drop);
   relaxBackticks(container, drop);
@@ -343,7 +392,7 @@ function relaxContainer(raw: string, documentHasDefinitions: boolean, inlineOnly
  * their inlines — only `\|` escapes a pipe — so each cell is its own inline container and
  * gets its own answer. Separators are kept so the row rebuilds byte-for-byte.
  */
-function relaxTableRow(line: string, documentHasDefinitions: boolean): string {
+function relaxTableRow(line: string, labels: Set<string>): string {
   const parts: string[] = [];
   let cell = '';
   for (let i = 0; i < line.length; i += 1) {
@@ -353,13 +402,13 @@ function relaxTableRow(line: string, documentHasDefinitions: boolean): string {
       continue;
     }
     if (line[i] === '|') {
-      parts.push(relaxContainer(cell, documentHasDefinitions, true), '|');
+      parts.push(relaxContainer(cell, labels, true), '|');
       cell = '';
       continue;
     }
     cell += line[i];
   }
-  parts.push(relaxContainer(cell, documentHasDefinitions, true));
+  parts.push(relaxContainer(cell, labels, true));
   return parts.join('');
 }
 
@@ -370,7 +419,7 @@ function relaxTableRow(line: string, documentHasDefinitions: boolean): string {
  */
 export function relaxEscapes(markdown: string): string {
   if (!ANY_RELAXABLE_ESCAPE.test(markdown)) return markdown;
-  const documentHasDefinitions = DEFINITION_LINE.test(markdown);
+  const labels = definedLabels(markdown);
 
   const out: string[] = [];
   let block: string[] = [];
@@ -378,7 +427,7 @@ export function relaxEscapes(markdown: string): string {
 
   const flush = () => {
     if (block.length === 0) return;
-    out.push(...relaxContainer(block.join('\n'), documentHasDefinitions).split('\n'));
+    out.push(...relaxContainer(block.join('\n'), labels).split('\n'));
     block = [];
   };
 
@@ -403,7 +452,7 @@ export function relaxEscapes(markdown: string): string {
     }
     if (TABLE_ROW.test(line)) {
       flush();
-      out.push(relaxTableRow(line, documentHasDefinitions));
+      out.push(relaxTableRow(line, labels));
       continue;
     }
     block.push(line);

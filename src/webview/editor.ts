@@ -8,7 +8,7 @@ import {
   parserCtx
 } from '@milkdown/core';
 import type { EditorView } from 'prosemirror-view';
-import { commonmark } from '@milkdown/preset-commonmark';
+import { commonmark, remarkInlineLinkPlugin } from '@milkdown/preset-commonmark';
 import { gfm } from '@milkdown/preset-gfm';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { replaceAll, getMarkdown } from '@milkdown/utils';
@@ -16,6 +16,7 @@ import { diffDocument } from './doc-diff';
 import { tightBulletList, tightListItem } from './plugins/tight-lists';
 import { applySerializeFixups } from './plugins/serialize-fixups';
 import { omdStringifyHandlers } from './plugins/stringify-handlers';
+import { definitionHandler } from './plugins/reference-links';
 import { calloutPlugin } from './plugins/callouts';
 import { taskListPlugin } from './plugins/task-lists';
 import { dateTokenPlugin } from './plugins/date-token';
@@ -61,6 +62,12 @@ import {
   smallSchema
 } from './plugins/inline-marks/schema';
 import { remarkAutolinks, autolinkSchema, autolinkInputRule } from './plugins/autolinks';
+import {
+  remarkReferenceLinks,
+  definitionSchema,
+  linkReferenceSchema,
+  imageReferenceSchema
+} from './plugins/reference-links';
 import { remarkHardBreak, hardBreakSchema } from './plugins/hardbreak';
 import { remarkEntities, entitySchema } from './plugins/entities';
 import { omdKeymap } from './commands/keymap';
@@ -115,7 +122,8 @@ export async function createOmdEditor(opts: OmdEditorOptions): Promise<OmdEditor
         // Layered over Milkdown's handler table: a document-initial thematic break must not
         // be `---` (it reopens as front matter, #23), and text is always escaped through
         // `state.safe()` (Milkdown's bypass drops escapes, #30). See stringify-handlers.ts.
-        handlers: { ...prev.handlers, ...omdStringifyHandlers },
+        // `definition` keeps a link definition's own bytes (#33); see reference-links.ts.
+        handlers: { ...prev.handlers, ...omdStringifyHandlers, definition: definitionHandler },
         bullet: '-',
         bulletOrdered: '.',
         rule: '-',
@@ -152,7 +160,11 @@ export async function createOmdEditor(opts: OmdEditorOptions): Promise<OmdEditor
     // Also before commonmark, so text nodes still carry the source positions the entity split needs
     // (the preset's soft-break handling otherwise splits/strips them on later lines).
     .use(remarkEntities)
-    .use(commonmark)
+    // The preset minus `remark-inline-links`, which is a *parse* plugin: it deletes every
+    // `definition` and rewrites every `linkReference` to an inline link before the document
+    // reaches the editor, so reference-style links were destroyed on load and no serializer
+    // change could undo it (#33). The schema that now holds them is `reference-links.ts`.
+    .use(commonmark.filter((plugin) => plugin !== remarkInlineLinkPlugin.plugin))
     // Before gfm so it gets first crack at Tab/Enter inside a table; it defers off a table.
     .use(tableNavKeymap)
     .use(tableClipboard)
@@ -211,6 +223,13 @@ export async function createOmdEditor(opts: OmdEditorOptions): Promise<OmdEditor
     .use(remarkAutolinks)
     .use(autolinkSchema)
     .use(autolinkInputRule)
+    // Reference-style links: `[label]: url` definitions and the `[ref]` / `[text][ref]` /
+    // `![alt][ref]` forms that point at them (#33). Registered after the preset so `paragraph`
+    // stays the schema's default block type.
+    .use(remarkReferenceLinks)
+    .use(definitionSchema)
+    .use(linkReferenceSchema)
+    .use(imageReferenceSchema)
     // `<br>` as a real line break that saves back byte-for-byte (remark transform registered
     // early, above; this is its schema node).
     .use(hardBreakSchema)

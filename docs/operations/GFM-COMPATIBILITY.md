@@ -36,7 +36,6 @@ identically; only the markdown bytes change:
 | Thematic breaks | `---`, but `***` as the first block | `***`, `___`, `- - -` → `---`; a leading `---` → `***` |
 | Code blocks | fenced (```) | a 4-space-indented block → a ` ``` ` fence |
 | Tabs | spaces | leading/though-line tabs are expanded |
-| Reference-style links & images | inline | `[foo][bar]` + `[bar]: /url` → `[foo](/url)` (see below) |
 
 These are deliberate serializer settings, not bugs — OMD picks one house style so the on-disk form is
 consistent. If you author in these styles, expect a one-time normalization on first save.
@@ -53,11 +52,11 @@ written `***`, which GitHub renders identically and which cannot open front matt
 Real deviations we're choosing to live with (for now), roughly in order of how likely you are to hit
 one:
 
-- **Reference-style links/images are inlined.** `[text][label]` with a `[label]: /url "title"`
-  definition becomes an inline `[text](/url "title")`, and the separate definition is dropped. It
-  renders identically, but it rewrites a legitimate authoring style (link definitions collected at the
-  bottom of a document) and is the single biggest source-fidelity gap. Preserving it is a sizeable
-  feature (new `linkReference`/`imageReference`/`definition` nodes) — tracked, not yet done.
+- **A link label carrying inline formatting splits the link.** `[*foo* bar](/url)` comes back as
+  `*[foo](/url)* [bar](/url)` — one link becomes two, because ProseMirror serializes the emphasis
+  mark outside the link mark. It hits reference links (`[*foo* bar]` with a definition) the same
+  way, since a reference is the same kind of mark. A plain label is unaffected; this is a
+  mark-priority question in the editor's document model, not a link-syntax one.
 - **Empty list items / blockquotes gain a `<br />`.** An empty item (`- ` on its own) or empty
   blockquote (`>`) serializes with Milkdown's empty-block marker, e.g. `- <br />`. Harmless and rare.
 - **Entities inside link URLs/titles and code-fence info strings decode.** `[x](/f&ouml;&ouml;)` →
@@ -73,6 +72,10 @@ one:
   (`plugins/hardbreak`).
 - **HTML entities** — `&copy;`, `&nbsp;`, `&#35;`, `&#x2A;` were decoded to their characters on save
   (`&nbsp;`→space is a real semantic change); now preserved byte-for-byte in text (`plugins/entities`).
+- **Reference-style links & images** — `[label]: /url` definitions were deleted and every `[ref]`,
+  `[ref][]`, `[text][ref]` and `![alt][ref]` rewritten to an inline link *at parse time*, so opening
+  a document destroyed the authoring style before the editor saw it. Now they are real schema nodes
+  and the definition keeps its own bytes (`plugins/reference-links`, #33).
 
 ## How this is measured
 
@@ -81,7 +84,7 @@ The gaps above are not guesses — they're derived from a living benchmark:
 - `test/gfm-conformance.test.ts` — the raw-HTML sections on two axes (export HTML vs the spec;
   round-trip no-loss), as per-section **ratchet** tests.
 - `test/gfm-roundtrip-all.test.ts` — all 670 examples, classifying each round-trip diff as
-  *style-only* (same content, canonical syntax — currently 364) or a *content change* (currently 106,
+  *style-only* (same content, canonical syntax — currently 404) or a *content change* (currently 20,
   all semantically-preserving), and ratcheting the content-change count so no real data loss can slip
   in.
 

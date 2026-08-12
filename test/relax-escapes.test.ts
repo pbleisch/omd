@@ -70,9 +70,27 @@ describe('relax escapes: brackets', () => {
     expect(relaxEscapes('see \\[a] and [b][c]\n')).toBe('see \\[a] and [b][c]\n');
   });
 
-  it('keeps the escape when the document defines a link label anywhere', () => {
+  it('keeps the escape when the document defines that exact link label', () => {
     expect(relaxEscapes('## \\[Unreleased]\n\n[Unreleased]: https://example.com\n')).toBe(
       '## \\[Unreleased]\n\n[Unreleased]: https://example.com\n'
+    );
+    // Label matching is case-folded and collapses whitespace, so both spellings still match.
+    expect(relaxEscapes('see \\[UN Released]\n\n[un   released]: https://example.com\n')).toBe(
+      'see \\[UN Released]\n\n[un   released]: https://example.com\n'
+    );
+  });
+
+  it('drops the escape on a bracket whose label the document does not define (#33)', () => {
+    // Before reference links survived a load, no loaded document ever *kept* a definition, so
+    // "the document defines something" was free to treat as "no bracket here is relaxable".
+    // Now that they survive, that would put a backslash before every literal `[word]` in a
+    // file that happens to carry a definitions block.
+    expect(relaxEscapes('a literal \\[word] here\n\n[other]: https://example.com\n')).toBe(
+      'a literal [word] here\n\n[other]: https://example.com\n'
+    );
+    // The defined one still keeps its escape, in the same container as a relaxed one.
+    expect(relaxEscapes('\\[word] and \\[other]\n\n[other]: https://example.com\n')).toBe(
+      '[word] and \\[other]\n\n[other]: https://example.com\n'
     );
   });
 
