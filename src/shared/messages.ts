@@ -48,6 +48,11 @@ export type HostToEditor =
    * editor can't get from a Problems-panel click.
    */
   | { type: 'diagnostics'; broken: string[] }
+  /**
+   * Scroll to the heading with this GitHub slug. Sent when a `file.md#anchor` link elsewhere
+   * opened this document in OMD — the host knows the anchor, only the editor can scroll to it.
+   */
+  | { type: 'revealAnchor'; slug: string }
   /** Round-trip / liveness ping answered by the editor with `pong`. */
   | { type: 'ping'; nonce: string }
   /**
@@ -85,6 +90,15 @@ export type EditorToHost =
    * workspace page name (a wikilink); only the host can resolve and open either.
    */
   | { type: 'openTarget'; target: string }
+  /**
+   * The user followed an ordinary markdown link (`[a](docs/DESIGN.md#anchor)`). `href` is the
+   * destination exactly as the document holds it — the host resolves it **relative to this
+   * document**, which is what a markdown link means, and reveals the `#fragment` if there is one.
+   * Distinct from `openTarget` on purpose: that is wikilink resolution by page name, a different
+   * rule that would silently open the wrong file for a link written in a subdirectory. A
+   * same-document `#anchor` never gets here; the editor scrolls itself.
+   */
+  | { type: 'openLink'; href: string }
   /**
    * The full thread list after a comment action. The host owns the metadata and is the only
    * writer, so the editor sends intent rather than editing the block itself.

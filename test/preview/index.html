@@ -37,6 +37,7 @@
       // Stub the VS Code webview API so the bundle runs in a plain browser.
       window.acquireVsCodeApi = () => ({
         postMessage: async (msg) => {
+          (window.__OMD_SENT__ ||= []).push(msg);
           if (msg.type !== 'ready') return;
           const fx = window.__OMD_FIXTURE__;
           if (fx?.blocks) window.postMessage({ type: 'blocks', blocks: fx.blocks }, '*');

@@ -3,14 +3,16 @@ import { Plugin, PluginKey, type EditorState, type Transaction } from 'prosemirr
 import { Decoration, DecorationSet } from 'prosemirror-view';
 import type { Node as ProseNode } from 'prosemirror-model';
 import { WIKILINK_RE, parseWikilink, isMentionLink, isIssueLink } from '../../shared/references';
-import { slugify } from '../../shared/diagnostics';
-import { post } from '../vscode';
+import { followTitle, headingSlugPositions } from './link-follow';
 
 /**
  * Inline references in the editor. Wikilinks are plain text on disk (`[[Roadmap]]`), so they
  * are rendered with decorations: the brackets and the `|target` are hidden as machinery and
  * the label is styled as a link. Mentions and issues are already *real* markdown links, so
  * they only get a chip style. Decoration-only — nothing is rewritten, so the round-trip holds.
+ *
+ * Rendering and validation only. *Following* a reference lives in `link-follow.ts`, with every
+ * other inline link form, so the whole document navigates the same way.
  */
 
 interface WikiHit {
@@ -57,22 +59,6 @@ function wikiTargetTitle(target: string): string {
   return `${bare.replace(/ /g, '-')}.md`;
 }
 
-/** The doc's heading slugs (GitHub-style, de-duplicated), for validating `#anchor` links inline. */
-function docHeadingSlugs(doc: ProseNode): Set<string> {
-  const seen = new Map<string, number>();
-  const slugs = new Set<string>();
-  doc.descendants((node) => {
-    if (node.type.name !== 'heading') return true;
-    const base = slugify(node.textContent);
-    if (!base) return true;
-    const n = seen.get(base) ?? 0;
-    seen.set(base, n + 1);
-    slugs.add(n === 0 ? base : `${base}-${n}`);
-    return true;
-  });
-  return slugs;
-}
-
 function buildDecorations(doc: ProseNode, broken: ReadonlySet<string>): DecorationSet {
   const decos: Decoration[] = [];
 
@@ -84,8 +70,8 @@ function buildDecorations(doc: ProseNode, broken: ReadonlySet<string>): Decorati
       Decoration.inline(hit.labelFrom, hit.labelTo, {
         class: 'omd-wikilink',
         'data-target': hit.target,
-        // Hovering shows where it goes — the resolved page file.
-        title: wikiTargetTitle(hit.target)
+        // Hovering shows where it goes — the resolved page file — and how to get there.
+        title: followTitle(wikiTargetTitle(hit.target))
       })
     );
   }
@@ -94,7 +80,7 @@ function buildDecorations(doc: ProseNode, broken: ReadonlySet<string>): Decorati
   // A link that fails a check is marked inline: a missing relative file (error, red) or a warning
   // (amber) for an empty target or an anchor that matches no heading — the inline replacement for
   // the Problems panel (which can't reveal a range inside a custom editor).
-  const headingSlugs = docHeadingSlugs(doc);
+  const headingSlugs = new Set(headingSlugPositions(doc).map((h) => h.slug));
   doc.descendants((node, pos) => {
     if (!node.isText || !node.text || isInlineCode(node)) return true;
     const link = node.marks.find((m) => m.type.name === 'link');
@@ -117,7 +103,9 @@ function buildDecorations(doc: ProseNode, broken: ReadonlySet<string>): Decorati
       problem?.class ?? ''
     ].filter(Boolean);
     const attrs: Record<string, string> = {};
-    attrs.title = problem?.title ?? (href || '');
+    // A problem replaces the hover text: a link that doesn't resolve can't be followed, so the
+    // "how to follow it" hint would be a lie.
+    attrs.title = problem?.title ?? (href ? followTitle(href) : '');
     if (classes.length) attrs.class = classes.join(' ');
     if (attrs.title || classes.length) decos.push(Decoration.inline(pos, pos + node.nodeSize, attrs));
     return true;
@@ -151,25 +139,6 @@ export const referencesPlugin = $prose(
       props: {
         decorations(state) {
           return buildDecorations(state.doc, key.getState(state)?.broken ?? new Set());
-        },
-        /**
-         * References resolve to real destinations: a wikilink opens the workspace page, a
-         * mention or issue opens its URL. The host does the resolving — the webview has no
-         * filesystem and cannot navigate on its own.
-         */
-        handleClick(view, pos, event) {
-          const el = (event.target as HTMLElement | null)?.closest?.(
-            '.omd-wikilink, .omd-mention, .omd-issue'
-          ) as HTMLElement | null;
-          if (!el) return false;
-          const target =
-            el.dataset.target ??
-            (el.closest('a') as HTMLAnchorElement | null)?.href ??
-            el.textContent ??
-            '';
-          if (!target) return false;
-          post({ type: 'openTarget', target });
-          return true;
         }
       }
     })

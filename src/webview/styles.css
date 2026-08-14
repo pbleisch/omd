@@ -2032,7 +2032,6 @@ body.omd-collapse-comments #omd-root {
 .omd-wikilink {
   color: var(--vscode-textLink-foreground, #4daafc);
   border-bottom: 1px dashed currentColor;
-  cursor: pointer;
 }
 .omd-wikilink:hover {
   border-bottom-style: solid;
@@ -2043,7 +2042,6 @@ body.omd-collapse-comments #omd-root {
   color: var(--vscode-textLink-foreground, #4daafc);
   text-decoration: none;
   border-bottom: 1px dotted currentColor;
-  cursor: pointer;
 }
 .omd-link-reference:hover {
   border-bottom-style: solid;
@@ -2087,8 +2085,18 @@ body.omd-collapse-comments #omd-root {
   background: var(--vscode-textCodeBlock-background, rgba(255, 255, 255, 0.06));
   border-radius: var(--omd-radius-pill);
   padding: 1px 6px;
-  cursor: pointer;
   white-space: nowrap;
+}
+
+/* Following a link (plugins/link-follow.ts): VS Code's Cmd/Ctrl+hover affordance. A link already
+   reads as a link here — coloured, underlined on hover — so what needs saying is that a click
+   *now follows it* rather than placing the cursor, and the cursor shape says exactly that. It is
+   off by default on purpose: an unmodified click really does edit, and a pointer would be a lie. */
+.omd-follow-armed a,
+.omd-follow-armed .omd-wikilink,
+.omd-follow-armed .omd-mention,
+.omd-follow-armed .omd-issue {
+  cursor: pointer;
 }
 /* A link whose target the host reported missing: a red wavy underline where it sits, with the
    "Linked file not found: …" message on hover (the reveal a Problems-panel click can't deliver

@@ -16,4 +16,13 @@ suite('OMD host: broken-link filesystem check', () => {
     // Broken.md links to Nope.md (missing) and Home.md (exists) — only the first is broken.
     assert.deepStrictEqual(broken, ['Nope.md']);
   });
+
+  // The check and the click share one resolver, so "marked broken" and "won't open" can never
+  // disagree: docs/Design.md links to a sibling, a percent-encoded name and a .txt one level up.
+  test('a link the click can follow is never marked broken', async () => {
+    const doc = await vscode.workspace.openTextDocument(
+      vscode.Uri.joinPath(wiki(), 'docs/Design.md')
+    );
+    assert.deepStrictEqual(await brokenRelativeLinks(doc), []);
+  });
 });

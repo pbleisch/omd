@@ -110,6 +110,12 @@ describe('file link extraction (for the host fs check)', () => {
     expect(fileLinkTargets(md).map((l) => l.target)).toEqual(['./other.md', 'sub/page.md']);
   });
 
+  it('keeps a pointy-bracket destination with spaces together', () => {
+    expect(fileLinkTargets('See [the notes](<my doc.md>).\n').map((l) => l.target)).toEqual([
+      'my doc.md'
+    ]);
+  });
+
   it('ignores links inside code fences', () => {
     expect(fileLinkTargets('```\n[x](./nope.md)\n```\n')).toEqual([]);
   });

@@ -19,6 +19,7 @@ import { setThreads } from './blocks/threads-registry';
 import { registerBrandIcons } from './blocks/brand-icons';
 import { registerUiIcons } from './blocks/ui-icons';
 import { setBrokenLinks } from './plugins/references';
+import { revealAnchor } from './plugins/link-follow';
 import { mountProblemsChip } from './ui/problems-chip';
 import { resolveLinkMeta } from './blocks/linkcard';
 import { resolvePromptChunk, resolvePromptDone, resolvePromptError } from './blocks/ai';
@@ -54,6 +55,9 @@ async function main(): Promise<void> {
   let version = 0;
   // Broken-link targets can arrive before the editor finishes mounting; hold them until it exists.
   let pendingBroken: string[] | null = null;
+  // Same for the anchor of a `file.md#heading` link that opened this document: it arrives with
+  // the first push, before there is a view to scroll.
+  let pendingAnchor: string | null = null;
   // The last text we know is in sync with the host, normalized. Guards the loop:
   // an edit whose normalized form matches this is not sent.
   let lastSynced = '';
@@ -102,6 +106,10 @@ async function main(): Promise<void> {
               setBrokenLinks(h.getView(), pendingBroken);
               pendingBroken = null;
             }
+            if (pendingAnchor) {
+              revealAnchor(h.getView(), pendingAnchor);
+              pendingAnchor = null;
+            }
           });
         }
         break;
@@ -130,6 +138,10 @@ async function main(): Promise<void> {
       case 'diagnostics':
         if (handle) setBrokenLinks(handle.getView(), msg.broken);
         else pendingBroken = msg.broken;
+        break;
+      case 'revealAnchor':
+        if (handle) revealAnchor(handle.getView(), msg.slug);
+        else pendingAnchor = msg.slug;
         break;
       case 'ping':
         post({ type: 'pong', nonce: msg.nonce });

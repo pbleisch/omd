@@ -38,6 +38,12 @@ All notable changes to OMD are documented here. The format is based on
 
 ### Fixed
 
+- **Inline links can be followed without leaving the editor.** Hold Cmd on macOS or Ctrl on other
+  platforms and click an ordinary, reference-style, mention, issue, or wikilink. Markdown file
+  paths resolve relative to the document containing them (including `../`, spaced names and
+  heading fragments), non-Markdown files open in their normal VS Code editor, and same-document
+  anchors scroll in place. Holding the modifier adds the same pointer and follow hint across every
+  editable inline link form; an unmodified click still places the writing cursor.
 - **Reference-style links survive opening a document.** `@milkdown/preset-commonmark` bundles
   `remark-inline-links` as a *parse* plugin, so every `[label]: url` definition was deleted and
   every `[ref]` rewritten to an inline link before the document reached the editor:

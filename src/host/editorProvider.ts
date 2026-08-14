@@ -8,6 +8,8 @@ import { splitThreads, withThreads, type Thread } from '../shared/threads';
 import { findBacklinks } from './backlinks';
 import { wikiTargetCandidates } from '../shared/references';
 import { resolveWorkspacePage } from './wikiResolve';
+import { resolveDocumentLink, headingLine } from './linkResolve';
+import { externalUrl, parseHref, schemeOf } from '../shared/links';
 import { resolveAuthor } from './identity';
 import { brokenRelativeLinks } from './diagnostics';
 import { fetchGitHubData } from './github';
@@ -29,6 +31,17 @@ export class OmdEditorProvider implements vscode.CustomTextEditorProvider {
 
   /** The most recently resolved/focused editor, so a global command can push to it. */
   private active?: { document: vscode.TextDocument; post: (msg: HostToEditor) => void };
+
+  /**
+   * Anchors waiting for an editor, keyed by document URI. A `file.md#heading` link opens the file
+   * first and only then knows which editor took it; if that is a *new* OMD webview it has not
+   * booted yet and a `postMessage` would be dropped, so the anchor is parked here and drained when
+   * that editor reports `ready`.
+   */
+  private readonly pendingAnchors = new Map<string, string>();
+
+  /** Documents whose OMD webview has booted and can receive a push. */
+  private readonly readyEditors = new Set<string>();
 
   /** Fires when the focused OMD document changes, so the GitHub preview can follow it. */
   private readonly _onDidChangeActiveDocument = new vscode.EventEmitter<vscode.TextDocument>();
@@ -171,6 +184,7 @@ export class OmdEditorProvider implements vscode.CustomTextEditorProvider {
     const onMessage = webview.onDidReceiveMessage(async (msg: EditorToHost) => {
       switch (msg.type) {
         case 'ready':
+          this.readyEditors.add(document.uri.toString());
           // Send the media base before the document so images render with resolvable URLs.
           post({ type: 'mediaBase', base: mediaBase });
           pushDocument();
@@ -195,6 +209,14 @@ export class OmdEditorProvider implements vscode.CustomTextEditorProvider {
           });
           // Populate the AI block's model picker (empty unless AI is enabled).
           void pushModels();
+          // A `file.md#heading` link opened this document: now that it can receive, reveal it.
+          {
+            const slug = this.pendingAnchors.get(document.uri.toString());
+            if (slug !== undefined) {
+              this.pendingAnchors.delete(document.uri.toString());
+              post({ type: 'revealAnchor', slug });
+            }
+          }
           break;
         case 'edit': {
           // The editor only ever sees the body, so put the thread metadata back before the
@@ -239,6 +261,9 @@ export class OmdEditorProvider implements vscode.CustomTextEditorProvider {
         }
         case 'openTarget':
           await this.openTarget(msg.target, document);
+          break;
+        case 'openLink':
+          await this.openLink(msg.href, document);
           break;
         case 'saveAs': {
           // A block exported its preview; the host owns disk access, so it runs the dialog.
@@ -368,6 +393,8 @@ export class OmdEditorProvider implements vscode.CustomTextEditorProvider {
     });
 
     panel.onDidDispose(() => {
+      this.readyEditors.delete(document.uri.toString());
+      this.pendingAnchors.delete(document.uri.toString());
       if (this.active?.document.uri.toString() === document.uri.toString()) this.active = undefined;
       if (validateTimer) clearTimeout(validateTimer);
       if (backlinkTimer) clearTimeout(backlinkTimer);
@@ -404,6 +431,66 @@ export class OmdEditorProvider implements vscode.CustomTextEditorProvider {
     void vscode.window.showInformationMessage(
       `OMD: no page named "${wikiTargetCandidates(target)[0]}.md" in this workspace.`
     );
+  }
+
+  /**
+   * Follow an ordinary markdown link. Resolution is **document-relative** (`linkResolve.ts`), which
+   * is what `[a](docs/DESIGN.md)` means — deliberately not the wikilink page-name search, which
+   * agrees only by luck at a repository root. Any file type opens: `vscode.open` hands the URI to
+   * whatever editor is registered for it, so a `.png` opens in the image viewer and a `.txt` in the
+   * text editor, rather than markdown being the only followable target.
+   */
+  private async openLink(href: string, document: vscode.TextDocument): Promise<void> {
+    const external = externalUrl(href);
+    if (external) {
+      await vscode.env.openExternal(vscode.Uri.parse(external));
+      return;
+    }
+    const scheme = schemeOf(href);
+    if (scheme && scheme !== 'file') {
+      // An author-chosen scheme is not something to hand the platform opener on a click.
+      this.log.appendLine(`[link] refusing to open "${href}" (unsupported "${scheme}:" scheme)`);
+      void vscode.window.showInformationMessage(
+        `OMD: can't follow "${href}" — only http, https, mailto and file links are followed.`
+      );
+      return;
+    }
+
+    const found = await resolveDocumentLink(document, href);
+    if (!found) {
+      const { path } = parseHref(href);
+      const from = vscode.workspace.asRelativePath(vscode.Uri.joinPath(document.uri, '..'), false);
+      this.log.appendLine(`[link] no file for "${href}" relative to ${document.uri.fsPath}`);
+      void vscode.window.showInformationMessage(
+        `OMD: can't follow "${href}" — no file named "${path}" relative to ${from || 'this document'}.`
+      );
+      return;
+    }
+
+    // Work out the anchor's line *before* opening, so a plain text editor can be revealed at it
+    // the moment it appears.
+    const line = await headingLine(found.uri, found.fragment);
+    if (found.fragment && line < 0) {
+      this.log.appendLine(`[link] "${href}" opened, but no heading matches "#${found.fragment}"`);
+    }
+    await vscode.commands.executeCommand('vscode.open', found.uri);
+    if (line < 0) return;
+
+    const key = found.uri.toString();
+    const text = vscode.window.visibleTextEditors.find((e) => e.document.uri.toString() === key);
+    if (text) {
+      const at = new vscode.Position(line, 0);
+      text.selection = new vscode.Selection(at, at);
+      text.revealRange(new vscode.Range(at, at), vscode.TextEditorRevealType.InCenter);
+      return;
+    }
+    // Not a text editor, so OMD's own webview took it. An editor that is already up can be told
+    // directly; a freshly opened one is still booting and gets the anchor on `ready`.
+    if (this.active?.document.uri.toString() === key && this.readyEditors.has(key)) {
+      this.active.post({ type: 'revealAnchor', slug: found.fragment });
+    } else {
+      this.pendingAnchors.set(key, found.fragment);
+    }
   }
 
   private renderHtml(webview: vscode.Webview): string {

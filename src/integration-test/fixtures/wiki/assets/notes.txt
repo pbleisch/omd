@@ -1,0 +1,1 @@
+Not markdown. A link to this must still open, in whatever editor VS Code uses for it.
