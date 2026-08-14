@@ -23,6 +23,7 @@ import { dateTokenPlugin } from './plugins/date-token';
 import { commentsPlugin } from './plugins/comments';
 import { revisePlugin } from './plugins/revise/plugin';
 import { referencesPlugin } from './plugins/references';
+import { linkFollowPlugin } from './plugins/link-follow';
 import { smartPastePlugin } from './plugins/smart-paste';
 import { mentionMenuPlugin } from './ui/mention-menu';
 import { emojiMenuPlugin } from './ui/emoji-menu';
@@ -180,6 +181,8 @@ export async function createOmdEditor(opts: OmdEditorOptions): Promise<OmdEditor
     // AI inline revision — a decoration-only diff over a selection (doc untouched until Accept).
     .use(revisePlugin)
     .use(referencesPlugin)
+    // Cmd/Ctrl+click follows any inline link — after references, which renders them.
+    .use(linkFollowPlugin)
     .use(smartPastePlugin)
     .use(mentionMenuPlugin)
     .use(emojiMenuPlugin)

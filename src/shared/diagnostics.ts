@@ -37,23 +37,24 @@ export function slugify(text: string): string {
     .replace(/\s+/g, '-');
 }
 
-/** Every heading's text and de-duplicated slug, in order, skipping fenced code. */
-export function headingSlugs(text: string): Array<{ text: string; slug: string }> {
+/** Every heading's text, de-duplicated slug and 0-based line, in order, skipping fenced code. */
+export function headingSlugs(text: string): Array<{ text: string; slug: string; line: number }> {
   const seen = new Map<string, number>();
-  const out: Array<{ text: string; slug: string }> = [];
+  const out: Array<{ text: string; slug: string; line: number }> = [];
   let inFence = false;
-  for (const line of text.split('\n')) {
-    if (/^\s*(```|~~~)/.test(line)) {
+  const lines = text.split('\n');
+  for (let line = 0; line < lines.length; line++) {
+    if (/^\s*(```|~~~)/.test(lines[line])) {
       inFence = !inFence;
       continue;
     }
     if (inFence) continue;
-    const m = /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(line);
+    const m = /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(lines[line]);
     if (!m) continue;
     const base = slugify(m[1]);
     const n = seen.get(base) ?? 0;
     seen.set(base, n + 1);
-    out.push({ text: m[1], slug: n === 0 ? base : `${base}-${n}` });
+    out.push({ text: m[1], slug: n === 0 ? base : `${base}-${n}`, line });
   }
   return out;
 }
@@ -256,8 +257,11 @@ export function fileLinkTargets(text: string): Array<{ target: string; from: num
     if (inRanges(m.index, skip)) continue;
     const target = m[2].trim();
     if (!target || /^(https?:|mailto:|#|\/\/)/i.test(target)) continue;
-    // Strip an in-file anchor and any title.
-    const path = target.split('#')[0].split(/\s+/)[0];
+    // Strip an in-file anchor and any title. Pointy brackets are the CommonMark spelling for a
+    // destination containing spaces, so unwrap them before looking for title whitespace.
+    const angleEnd = target.startsWith('<') ? target.indexOf('>') : -1;
+    const destination = angleEnd > 0 ? target.slice(1, angleEnd) : target.split(/\s+/)[0];
+    const path = destination.split('#')[0];
     if (!path || /^[a-z]+:/i.test(path)) continue;
     const targetStart = m.index + m[0].indexOf('(') + 1;
     out.push({ target: path, from: targetStart, to: targetStart + target.length });

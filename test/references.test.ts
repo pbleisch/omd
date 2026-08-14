@@ -67,23 +67,28 @@ describe('wikilinks', () => {
 });
 
 describe('link hover tooltips', () => {
+  // The tooltip's first line is where the link goes; the second is how to follow it
+  // (`link-follow.ts` owns that half, and its wording is platform-dependent).
+  const destination = (el: Element | null | undefined) =>
+    el?.getAttribute('title')?.split('\n')[0];
+
   it('a wikilink shows the resolved page file as its title', async () => {
     const { root } = await mountEditor('See [[Smart Blocks]] here.\n');
     const el = root.querySelector('.omd-wikilink') as HTMLElement;
     expect(el).toBeTruthy();
-    expect(el.getAttribute('title')).toBe('Smart-Blocks.md'); // spaces → dashes, .md
+    expect(destination(el)).toBe('Smart-Blocks.md'); // spaces → dashes, .md
   });
 
   it("a labelled wikilink's title follows the target, not the label", async () => {
     const { root } = await mountEditor('See [[the plan|Roadmap]] today.\n');
     const el = root.querySelector('.omd-wikilink') as HTMLElement;
-    expect(el.getAttribute('title')).toBe('Roadmap.md');
+    expect(destination(el)).toBe('Roadmap.md');
   });
 
   it('a regular link shows its href as the title', async () => {
     const { root } = await mountEditor('See [the backlog](BUGS.md) now.\n');
     const el = [...root.querySelectorAll<HTMLElement>('[title]')].find(
-      (e) => e.getAttribute('title') === 'BUGS.md'
+      (e) => destination(e) === 'BUGS.md'
     );
     expect(el).toBeTruthy();
   });
