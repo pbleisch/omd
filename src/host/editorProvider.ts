@@ -209,6 +209,11 @@ export class OmdEditorProvider implements vscode.CustomTextEditorProvider {
           });
           // Populate the AI block's model picker (empty unless AI is enabled).
           void pushModels();
+          // Send outline panel initial state from user preference.
+          {
+            const cfg = vscode.workspace.getConfiguration('omd.outline');
+            post({ type: 'outlineConfig', defaultVisible: cfg.get<boolean>('defaultVisible', true) });
+          }
           // A `file.md#heading` link opened this document: now that it can receive, reveal it.
           {
             const slug = this.pendingAnchors.get(document.uri.toString());

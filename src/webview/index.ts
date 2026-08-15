@@ -146,6 +146,13 @@ async function main(): Promise<void> {
       case 'ping':
         post({ type: 'pong', nonce: msg.nonce });
         break;
+      case 'outlineConfig':
+        if (msg.defaultVisible) {
+          document.body.classList.remove('omd-collapse-outline');
+        } else {
+          document.body.classList.add('omd-collapse-outline');
+        }
+        break;
       case 'linkMeta':
         resolveLinkMeta(msg.nonce, msg.meta);
         break;

@@ -64,6 +64,11 @@
           "type": "string",
           "default": "gpt-4o",
           "markdownDescription": "Default language-model *family* used by AI blocks (e.g. `gpt-4o`, `gpt-4o-mini`, `o1`). A block may override this per instance. Falls back to any available model if the requested family isn't installed."
+        },
+        "omd.outline.defaultVisible": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the outline (table of contents) panel when an editor opens. When off, the panel starts collapsed; you can still toggle it open with the outline button."
         }
       }
     },

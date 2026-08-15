@@ -56,6 +56,12 @@ export type HostToEditor =
   /** Round-trip / liveness ping answered by the editor with `pong`. */
   | { type: 'ping'; nonce: string }
   /**
+   * Initial outline (table of contents) panel state. `defaultVisible` controls whether the
+   * panel starts open or collapsed for this editor instance. The user can still toggle it
+   * interactively after — this only sets the starting state.
+   */
+  | { type: 'outlineConfig'; defaultVisible: boolean }
+  /**
    * Answer to a `fetchLinkMeta` request, correlated by `nonce`. `meta` is null when the fetch
    * failed (offline, non-HTML, timeout) — the editor keeps its placeholder card in that case.
    */
