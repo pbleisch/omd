@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { undo } from 'prosemirror-history';
+import { NodeSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
+import { mergeAdjacentLists } from '../src/webview/plugins/list-adjacency';
 import { mountEditor, roundTripDoc } from './helpers/editor';
 
 /** Delete the top-level block separating two lists, through the live editor transaction path. */
@@ -125,6 +127,38 @@ describe('adjacent list merging (#22)', () => {
     expect(quote?.childCount).toBe(1);
     expect(quote?.firstChild?.type.name).toBe('bullet_list');
     expect(handle.getMarkdown()).toBe('> - a\n> - b\n');
+    root.remove();
+  });
+
+  it('leaves the caret at the junction rather than the end of the merged list', async () => {
+    const input = '- a\n- b\n\nseparator\n\n- c\n- d\n';
+    const { root, handle } = await mountEditor(input);
+    const view = handle.getView();
+    const from = view.state.doc.child(0).nodeSize;
+
+    // The gesture #22 is about: select the paragraph between the two lists and delete it.
+    view.dispatch(
+      view.state.tr.setSelection(NodeSelection.create(view.state.doc, from)).deleteSelection()
+    );
+
+    expect(handle.getMarkdown()).toBe('- a\n- b\n- c\n- d\n');
+    expect(view.state.selection.$head.parent.textContent).not.toBe('d');
+    expect(['b', 'c']).toContain(view.state.selection.$head.parent.textContent);
+    root.remove();
+  });
+
+  it('looks for adjacency only around the ranges the transactions touched', async () => {
+    // Two lists that differ only by marker parse as two adjacent nodes with no edit at all.
+    const { root, handle } = await mountEditor('- a\n* b\n');
+    const { state } = handle.getView();
+    expect(state.doc.childCount).toBe(2);
+
+    expect(mergeAdjacentLists(state, [])).toBeNull();
+
+    const junction = state.doc.child(0).nodeSize;
+    const merged = mergeAdjacentLists(state, [[junction, junction]]);
+    expect(merged).not.toBeNull();
+    expect(merged?.doc.childCount).toBe(1);
     root.remove();
   });
 

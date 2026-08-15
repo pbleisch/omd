@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TextSelection } from 'prosemirror-state';
 import { undo } from 'prosemirror-history';
 import { createOmdEditor } from '../src/webview/editor';
+import { moveBlock } from '../src/webview/commands/move-block';
 import { mountEditor, roundTrip, roundTripDoc } from './helpers/editor';
 
 /** The 17 safe members of the flow-adjacency family found while investigating #11. */
@@ -94,6 +95,38 @@ describe('tight flow round-trip (#11)', () => {
     view.dispatch(view.state.tr.insertText('!', view.state.doc.content.size - 1));
     await new Promise((resolve) => setTimeout(resolve, 350));
     expect(edits).toEqual(['> outer\n> > inner\n\ntail!\n']);
+    root.remove();
+  });
+
+  it('drops the seam when Alt+Down lands a tight block beside a different neighbour', async () => {
+    // The carried boundary is sticky: `move-block.ts` reinserts the node object verbatim.
+    // A bare tightness flag would emit `other\ntext`, which reopens as ONE paragraph.
+    const markdown = '# Heading\ntext\n\nother\n';
+    const { root, handle } = await mountEditor(markdown);
+    const view = handle.getView();
+    expect(handle.getMarkdown()).toBe(markdown);
+
+    const inText = view.state.doc.child(0).nodeSize + 1;
+    view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, inText)));
+    expect(moveBlock(1)(view)).toBe(true);
+
+    const moved = handle.getMarkdown();
+    expect(moved).toBe('# Heading\n\nother\n\ntext\n');
+    const reopened = await roundTripDoc(moved);
+    expect(reopened.doc.childCount).toBe(3);
+    expect(reopened.output).toBe(moved);
+    root.remove();
+  });
+
+  it('drops the seam for the half a split leaves behind another paragraph', async () => {
+    const { root, handle } = await mountEditor('# Heading\nalphabeta\n');
+    const view = handle.getView();
+    const mid = view.state.doc.child(0).nodeSize + 1 + 'alpha'.length;
+    view.dispatch(view.state.tr.split(mid));
+
+    const split = handle.getMarkdown();
+    expect(split).toBe('# Heading\nalpha\n\nbeta\n');
+    expect((await roundTripDoc(split)).doc.childCount).toBe(3);
     root.remove();
   });
 
