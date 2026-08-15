@@ -86,8 +86,12 @@ the real host.
    from source positions at parse time and carries it through the ProseMirror model as the mdast
    type of the left sibling, then honours it at remark-stringify's `join` seam. The carrier is the
    left node's type, never a bare flag, so a moved, split, or pasted block validates against its
-   actual neighbour instead of merging two constructs into one. Do not loosen those boundaries on
-   the assumption they were never kept.
+   actual neighbour instead of merging two constructs into one. Matching the neighbour is not on
+   its own enough: the seam also re-derives CommonMark's rule for what may follow a paragraph on
+   the next line, because an edit can end a boundary the parse proved. Emptying the only item of
+   `alpha\n- a` makes the list serialize to a bare `-` (#32) — a setext underline that reopens as
+   one heading with the list gone. Do not loosen those boundaries on the assumption they were
+   never kept, and do not widen the seam without asking what the *edited* nodes reparse as.
 
    The CommonMark preset is used **filtered**, not whole: `remark-inline-links` is a *parse* plugin
    that deletes every link definition and inlines every reference before the editor sees the

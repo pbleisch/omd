@@ -184,6 +184,39 @@ export const tightFlowSchemas: MilkdownPlugin = (ctx) => () => {
   );
 };
 
+type FlowNode = Parameters<Join>[0];
+type ListNode = Extract<FlowNode, { type: 'list' }>;
+
+/**
+ * Does this list's first output line carry nothing but its marker?
+ *
+ * `plugins/stringify-handlers.ts` deliberately writes an item with no content as a bare `-`
+ * or `1.` (#32), and the writer reaches that state from a tight boundary by selecting the
+ * only item's text and deleting it.
+ */
+function startsWithBareMarker(list: ListNode): boolean {
+  const first = list.children?.[0]?.children?.[0];
+  if (!first) return true;
+  if (first.type !== 'paragraph') return false;
+  const only = first.children?.length === 1 ? first.children[0] : undefined;
+  return !first.children?.length || (only?.type === 'html' && only.value.trim() === '<br />');
+}
+
+/**
+ * CommonMark's rule for what may follow a paragraph on the very next line: another paragraph
+ * is absorbed as a lazy continuation, and a list starts a new construct only when its first
+ * item has content and, when ordered, it counts from 1. Every marked boundary satisfied this
+ * at parse time — that is why it was marked — but the attr rides through edits that end it,
+ * so the seam re-derives the answer from the nodes actually being written. `alpha\n- a` whose
+ * item is emptied would otherwise be written `alpha\n-`, which is a setext underline: the
+ * file reopens as one heading with the list gone.
+ */
+function interruptsParagraph(right: FlowNode): boolean {
+  if (right.type !== 'list') return right.type !== 'paragraph';
+  if (startsWithBareMarker(right)) return false;
+  return !right.ordered || right.start == null || right.start === 1;
+}
+
 /** remark-stringify join rule for a boundary proven tight by the original source. */
 export const tightFlowJoin: Join = (left, right) => {
   const leftType = tightLeftType(right as MarkdownNode);
@@ -192,10 +225,21 @@ export const tightFlowJoin: Join = (left, right) => {
   // not necessarily the one the source proved tight. Only a matching left sibling can keep
   // the seam; anything else falls back to the blank line remark-stringify would emit.
   if (leftType !== left.type) return;
-  // Defense in depth for attrs created by an edit rather than the parse transform: `---`
-  // after a single newline is a setext heading, and two paragraphs one newline apart are
-  // one paragraph. Neither pair can reach here from a parse, so refusing costs nothing.
+  // `---` one newline after any block is that block's setext underline, whatever the source
+  // proved. The parse transform already refuses to mark this pair; so does the seam.
   if (right.type === 'thematicBreak') return;
-  if (left.type === 'paragraph' && right.type === 'paragraph') return;
+  if (left.type === 'paragraph' && !interruptsParagraph(right)) return;
+  // Two lists of the same flavour one newline apart are one list unless their markers
+  // differ, and only mdast-util-to-markdown's own bullet alternation makes them differ.
+  // Two document nodes are worth more than a seam that rests on a serializer internal, so
+  // hand this boundary back to remark-stringify. Differing flavours cannot merge, and keep
+  // their seam.
+  if (
+    left.type === 'list' &&
+    right.type === 'list' &&
+    Boolean(left.ordered) === Boolean(right.ordered)
+  ) {
+    return;
+  }
   return 0;
 };

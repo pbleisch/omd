@@ -130,6 +130,51 @@ describe('tight flow round-trip (#11)', () => {
     root.remove();
   });
 
+  it('drops the seam when emptying the first item leaves the list a bare marker', async () => {
+    // `alpha\n-` is a setext heading and `alpha\n1.` is one paragraph, so a tight
+    // `paragraph -> list` has to be re-checked against the list actually being written.
+    const cases: Array<[string, string, string]> = [
+      ['alpha\n- a\n', 'alpha\n\n-\n', 'bullet_list'],
+      ['alpha\n1. a\n', 'alpha\n\n1.\n', 'ordered_list']
+    ];
+    for (const [markdown, expected, listType] of cases) {
+      const { root, handle } = await mountEditor(markdown);
+      const view = handle.getView();
+      let item = -1;
+      view.state.doc.descendants((node, pos) => {
+        if (item < 0 && node.isText && node.text === 'a') item = pos;
+        return item < 0;
+      });
+      view.dispatch(view.state.tr.delete(item, item + 1));
+
+      const emptied = handle.getMarkdown();
+      expect(emptied).toBe(expected);
+      const reopened = await roundTripDoc(emptied);
+      expect(
+        Array.from({ length: reopened.doc.childCount }, (_, i) => reopened.doc.child(i).type.name)
+      ).toEqual(['paragraph', listType]);
+      root.remove();
+    }
+  });
+
+  it('drops the seam between two lists of the same flavour', async () => {
+    for (const markdown of ['- a\n* b\n', '1. a\n1) b\n']) {
+      const first = await roundTripDoc(markdown);
+      expect(first.doc.childCount).toBe(2);
+      expect(first.output).toBe(markdown.replace('\n', '\n\n'));
+      const second = await roundTripDoc(first.output);
+      expect(second.doc.childCount).toBe(2);
+      expect(second.output).toBe(first.output);
+    }
+  });
+
+  it('keeps the seam between two lists that cannot merge', async () => {
+    const first = await roundTripDoc('- a\n1. b\n');
+    expect(first.output).toBe('- a\n1. b\n');
+    const second = await roundTripDoc(first.output);
+    expect(second.doc.toJSON()).toEqual(first.doc.toJSON());
+  });
+
   it('preserves paragraph as the schema default block type', async () => {
     const { root, handle } = await mountEditor('');
     const { schema, doc } = handle.getView().state;
