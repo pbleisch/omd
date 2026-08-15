@@ -50,14 +50,11 @@ describe('a host push updates only what changed (#7)', () => {
     root.remove();
   });
 
-  it('does nothing at all when the push only differs by remark normalization (#11)', async () => {
-    // The editor serializes `> [!NOTE]\n> - x` back as `> [!NOTE]\n>\n> - x`, so the host's
-    // bytes and the editor's never match for this construct and the serialization guard is
-    // guaranteed to miss. That used to mean a full repaint on *every* sync, not just on undo.
+  it('does nothing at all when the host pushes the tight-flow bytes it already holds (#11)', async () => {
     const { root, handle } = await mountEditor(DOC);
     const view = handle.getView();
     await wait(60);
-    expect(handle.getMarkdown()).not.toBe(DOC); // the divergence is real
+    expect(handle.getMarkdown()).toBe(DOC);
 
     const before = Array.from(view.dom.children);
     const doc = view.state.doc;

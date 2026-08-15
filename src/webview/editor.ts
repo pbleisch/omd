@@ -14,6 +14,8 @@ import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { replaceAll, getMarkdown } from '@milkdown/utils';
 import { diffDocument } from './doc-diff';
 import { tightBulletList, tightListItem } from './plugins/tight-lists';
+import { remarkTightFlow, tightFlowJoin, tightFlowSchemas } from './plugins/tight-flow';
+import { listAdjacencyPlugin } from './plugins/list-adjacency';
 import { applySerializeFixups } from './plugins/serialize-fixups';
 import { omdStringifyHandlers } from './plugins/stringify-handlers';
 import { definitionHandler } from './plugins/reference-links';
@@ -125,6 +127,7 @@ export async function createOmdEditor(opts: OmdEditorOptions): Promise<OmdEditor
         // `state.safe()` (Milkdown's bypass drops escapes, #30). See stringify-handlers.ts.
         // `definition` keeps a link definition's own bytes (#33); see reference-links.ts.
         handlers: { ...prev.handlers, ...omdStringifyHandlers, definition: definitionHandler },
+        join: [...(prev.join ?? []), tightFlowJoin],
         bullet: '-',
         bulletOrdered: '.',
         rule: '-',
@@ -250,9 +253,16 @@ export async function createOmdEditor(opts: OmdEditorOptions): Promise<OmdEditor
     .use(varSchema)
     .use(citeSchema)
     .use(smallSchema)
+    // #11: carry position-derived flow tightness without re-registering (and reordering)
+    // core schemas. These must follow every block schema and mdast pairing transform.
+    .use(remarkTightFlow)
+    .use(tightFlowSchemas)
     // P3 interaction surfaces — shortcuts, cursor-state events, slash menu. All three
     // and the toolbar drive the one command registry (Principle 4).
     .use(historyPlugin)
+    // #22: an edit that removes the separator between same-type lists makes one list.
+    // Registered after history so its appended merge belongs to the triggering undo step.
+    .use(listAdjacencyPlugin)
     .use(historyKeymap)
     .use(omdKeymap)
     .use(stateEventsPlugin)

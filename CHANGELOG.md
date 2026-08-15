@@ -38,6 +38,13 @@ All notable changes to OMD are documented here. The format is based on
 
 ### Fixed
 
+- **Tight flow blocks stay tight, and adjacent lists become one list.** A GitHub alert body,
+  nested quote, heading, fence, table, or list written directly after the preceding block no
+  longer gains a blank line on the first edit elsewhere in the document. Deleting the block
+  between two lists of the same type now merges them in the editor model; ordered numbering
+  continues across the old boundary, and the merge undoes with the deletion as one action.
+  ([#11](https://github.com/pbleisch/omd/issues/11),
+  [#22](https://github.com/pbleisch/omd/issues/22))
 - **Inline links can be followed without leaving the editor.** Hold Cmd on macOS or Ctrl on other
   platforms and click an ordinary, reference-style, mention, issue, or wikilink. Markdown file
   paths resolve relative to the document containing them (including `../`, spaced names and
