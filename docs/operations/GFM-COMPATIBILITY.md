@@ -59,6 +59,11 @@ one:
   mark-priority question in the editor's document model, not a link-syntax one.
 - **Empty list items / blockquotes gain a `<br />`.** An empty item (`- ` on its own) or empty
   blockquote (`>`) serializes with Milkdown's empty-block marker, e.g. `- <br />`. Harmless and rare.
+- **Two lists that differ only by their marker become one.** `- a` then `* b` (or `1.` then `1)`)
+  is two lists in markdown but one kind of node in the editor's model, so an edit in the document
+  can merge them into a single list, with ordered numbering continuing across the seam. Deleting
+  the block *between* two lists of the same type merges them the same way — there it is the
+  intended behavior, not a gap (#22).
 - **Entities inside link URLs/titles and code-fence info strings decode.** `[x](/f&ouml;&ouml;)` →
   `[x](/föö)`. Entities in ordinary text *are* preserved (see below); these positions are not yet
   covered.
@@ -72,6 +77,12 @@ one:
   (`plugins/hardbreak`).
 - **HTML entities** — `&copy;`, `&nbsp;`, `&#35;`, `&#x2A;` were decoded to their characters on save
   (`&nbsp;`→space is a real semantic change); now preserved byte-for-byte in text (`plugins/entities`).
+- **Tight flow boundaries** — a block written on the line directly after the previous one
+  (`> [!NOTE]` then `> - item`, a heading, fence, table or list after a paragraph) gained a blank
+  line on save; the boundary the source proves tight is now kept (`plugins/tight-flow`, #11). The
+  exception is a seam whose single newline would change what the bytes mean on reopen — OMD's
+  canonical `---` one line after a paragraph is that paragraph's setext underline, so a thematic
+  break keeps its blank line.
 - **Reference-style links & images** — `[label]: /url` definitions were deleted and every `[ref]`,
   `[ref][]`, `[text][ref]` and `![alt][ref]` rewritten to an inline link *at parse time*, so opening
   a document destroyed the authoring style before the editor saw it. Now they are real schema nodes
@@ -84,9 +95,10 @@ The gaps above are not guesses — they're derived from a living benchmark:
 - `test/gfm-conformance.test.ts` — the raw-HTML sections on two axes (export HTML vs the spec;
   round-trip no-loss), as per-section **ratchet** tests.
 - `test/gfm-roundtrip-all.test.ts` — all 670 examples, classifying each round-trip diff as
-  *style-only* (same content, canonical syntax — currently 404) or a *content change* (currently 20,
-  all semantically-preserving), and ratcheting the content-change count so no real data loss can slip
-  in.
+  *style-only* (same content, canonical syntax) or a *content change* (all semantically-preserving),
+  and ratcheting the content-change count against the baseline recorded in the test (currently 20)
+  so no real data loss can slip in. The run prints the current split of both buckets; a serializer
+  fix moves examples between them, so read the counts from the run rather than from this page.
 
 Run them with example-level detail:
 
