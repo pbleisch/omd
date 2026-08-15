@@ -158,10 +158,15 @@ describe('tight flow round-trip (#11)', () => {
   });
 
   it('drops the seam between two lists of the same flavour', async () => {
-    for (const markdown of ['- a\n* b\n', '1. a\n1) b\n']) {
+    // Only the seam between the two lists gains a blank line; the trailing newline stays put.
+    const cases: Array<[string, string]> = [
+      ['- a\n* b\n', '- a\n\n* b\n'],
+      ['1. a\n1) b\n', '1. a\n\n1) b\n']
+    ];
+    for (const [markdown, expected] of cases) {
       const first = await roundTripDoc(markdown);
       expect(first.doc.childCount).toBe(2);
-      expect(first.output).toBe(markdown.replace('\n', '\n\n'));
+      expect(first.output).toBe(expected);
       const second = await roundTripDoc(first.output);
       expect(second.doc.childCount).toBe(2);
       expect(second.output).toBe(first.output);
