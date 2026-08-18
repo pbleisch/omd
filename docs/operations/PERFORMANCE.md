@@ -2,7 +2,7 @@
 
 Where OMD spends bytes and time, what's been done, and the baselines to measure before 1.0.
 
-_Last reviewed: 2026-08 (v0.1.4)._
+_Last reviewed: 2026-08 (v0.2.0)._
 
 ## Shipped artifact size
 
