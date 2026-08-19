@@ -6,6 +6,16 @@ All notable changes to OMD are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-18
+
+**OMD moves to the Marketplace's stable channel.** Every release so far (`0.1.x`) went out as a
+pre-release, so you only received it if you had clicked "Switch to Pre-Release Version" on the
+listing. `0.2.0` is an even minor, and this project publishes even minors to the **stable** channel
+— so this is the first version that reaches an existing install as an ordinary update, and the one
+a new install gets by default. The channel is where the build is published, not what it does:
+nothing about the extension's behaviour changes because of the move, and the convention continues,
+so a `0.3.x` would again be a pre-release.
+
 ### Added
 
 - **Alt+Up / Alt+Down move the block under the cursor.** The unit that moves is the deepest
@@ -18,6 +28,11 @@ All notable changes to OMD are documented here. The format is based on
   can never step over it and quietly turn the callout into a plain blockquote — the walk-up
   continues outward and the whole alert moves instead. Each move is its own undo entry, so
   repeated presses undo one at a time rather than collapsing into a single step.
+- **The outline pane can start collapsed.** A new setting, `omd.outline.defaultVisible`, decides
+  whether a document's table of contents is showing the moment the editor opens. It defaults to
+  `true`, so nothing changes unless you turn it off; set it to `false` and every document opens
+  with the full width given to the text instead. It sets the starting position, not a lock — the
+  toolbar toggle still shows and hides the pane per document exactly as before.
 
 ### Changed
 
@@ -35,6 +50,19 @@ All notable changes to OMD are documented here. The format is based on
   first time the block says so rather than sitting empty. Each library is its own bundle in
   `media/`, loaded by a `<script>` carrying the webview's nonce, so the strict
   `script-src 'nonce-…'` CSP is unchanged. ([#18](https://github.com/pbleisch/omd/issues/18))
+- **The byte-for-byte promise is now checked against real documents, not three samples.** OMD's
+  central claim — open a file, save it without editing it, and it comes back identical — was
+  tested against three hand-written sample documents. It is now tested against **every Markdown
+  file in this repository** — 57 of them today, of ordinary prose, tables, checklists, front
+  matter and fenced code — on every commit. Run that way for the first time the suite was failing
+  on eight, which is the batch of fixes below. Each document is also reopened after saving and
+  compared as a *document* rather than only as bytes, because output that survives a byte
+  comparison can still mean something different when it is read back. Adding a document to the
+  project now extends the gate. Two byte-level details that Markdown's syntax tree simply does not
+  carry — the width of an inline code span's backtick delimiters, and the indentation of a wrapped
+  list item — stay filed as known gaps rather than quietly accepted.
+  ([#38](https://github.com/pbleisch/omd/issues/38),
+  [#39](https://github.com/pbleisch/omd/issues/39))
 
 ### Fixed
 
@@ -82,6 +110,24 @@ All notable changes to OMD are documented here. The format is based on
   invented in a file nobody edited. Its parse side *deletes* `<br />` nodes, so the two
   spellings are the same document; the one a writer meant is now the one written.
   ([#32](https://github.com/pbleisch/omd/issues/32))
+- **A tightly written table is left alone.** Before writing anything back, OMD compares what it
+  would save against what is already on disk and does nothing when the only difference is
+  cosmetic. A compact hand-written `|---|---|` never compared equal to the `| --- | --- |` the
+  serializer produces, so seven of this repository's own files looked changed by a save nobody
+  made. Delimiter rows are now reduced to the same canonical shape on both sides of that
+  comparison, alignment colons kept, so a table you spaced your own way stays spaced your own
+  way. A bare `---` outside a table is still a thematic break or a front-matter fence and never
+  grows pipes, and a delimiter row inside a fenced code block is content, not a table.
+  ([#32](https://github.com/pbleisch/omd/issues/32))
+- **A backslash you typed inside code stays there.** Three save-time fix-ups — the one that
+  unescapes a GitHub alert marker, the one for wikilinks, and the one for emoji shortcodes — ran
+  as blind find-and-replace over the finished file, so a backslash a writer had deliberately put
+  inside an inline code span or a fenced block was stripped along with the one the serializer had
+  added. OMD's own `CONTRIBUTING.md` was a casualty: a sentence contrasting the escaped and the
+  unescaped spelling of an alert marker came back showing the same spelling twice. All three now
+  see prose only — fenced blocks skipped whole, code spans matched by CommonMark's backtick-run
+  rule, so an unmatched run stays literal text and an escaped backtick never opens a span.
+  ([#31](https://github.com/pbleisch/omd/issues/31))
 - **Text holding both an HTML entity and a backslash escape no longer grows on every save.** The
   entity plugin preserves a writer's `&amp;` spelling by re-reading the raw source bytes for the
   text run around it, but that raw slice still carried the backslash escapes the parser had already
@@ -115,6 +161,13 @@ All notable changes to OMD are documented here. The format is based on
   a push that only differs by remark's normalization now costs nothing at all. A document change
   that carries no content changes (the dirty-state flip after a save) no longer pushes a document
   at all. ([#7](https://github.com/pbleisch/omd/issues/7))
+
+### Security
+
+- **Shipped dependencies picked up their upstream patch releases.** `js-yaml` 4.3.0 → 4.3.1, which
+  reads a document's front matter, and `dompurify` 3.4.12 → 3.4.13, which reaches the extension
+  through mermaid and sanitizes what a diagram renders. Both were flagged by Dependabot's security
+  updates and both ship inside the packaged extension.
 
 ## [0.1.4] — 2025-07-26
 

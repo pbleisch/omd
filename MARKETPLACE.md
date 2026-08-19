@@ -102,9 +102,9 @@ OMD works fully offline. It makes a network request only when **you** ask it to:
 
 OMD collects **no telemetry**.
 
-## Pre-release
+## Feedback
 
-This is an early pre-release.  Bug reports and feedback are very much appreciated — please file issues on the
+Bug reports and feedback are very much appreciated — please file issues on the
 [project repository](https://github.com/pbleisch/omd/issues).
 
 ## License

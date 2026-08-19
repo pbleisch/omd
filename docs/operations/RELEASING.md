@@ -80,6 +80,13 @@ each new build is a manual reinstall for them, so keep the round short.
 - [ ] `npm run test:integration` green (a real VS Code run).
 - [ ] Bump `version` in `package.json` — **odd minor for a pre-release**, even for stable — and move
   the `[Unreleased]` items in `CHANGELOG.md` under the new version with today's date.
+- [ ] Bump the version everywhere else it is asserted, or the release contradicts itself:
+  `package-lock.json` (the root object *and* the `""` package entry — `npm install` fixes both),
+  the `_Last reviewed: … (vX.Y.Z)._` stamp in `docs/operations/PERFORMANCE.md` when its numbers
+  were remeasured this cycle, and any channel claim in `MARKETPLACE.md` — that file is the
+  listing page, so a "this is an early pre-release" section is a lie the moment an even minor
+  ships. There is no version constant in `src/` and no `preview` flag in the manifest; keep it
+  that way, since the workflow already fails a tag that disagrees with `package.json`.
 - [ ] `npm run package` and **install the resulting `.vsix` into a clean VS Code**; open a `.md`,
   confirm rendering, insert a few blocks, export, and check the README preview looks right.
 - [ ] **The listing page is `MARKETPLACE.md`, not `README.md`** (passed via `--readme-path` in the
