@@ -29,7 +29,7 @@ and other people — can read.
 - **Smart blocks** — insert with `/`: callouts, collapsible sections, tabs, columns, an interactive
   chart backed by a real data table, YouTube embeds, image galleries, a live table of contents,
   dates, footnotes, and link cards with rich URL previews. Each serializes to a form a plain
-  markdown reader still understands.
+  markdown reader still understands — and the list isn't fixed, because you can add your own.
 - **Spreadsheet-style tables** — overlay controls, move and sort columns and rows, keyboard
   navigation, and high-fidelity copy/paste to and from Excel, Sheets, and Word.
 - **Comments** — thread a comment on any selection. Comments live *in the file* and survive every
@@ -53,6 +53,48 @@ three-column layout that a plain markdown reader still understands.
 
 Hover any table for overlay controls: drag a column or row to reorder it, sort by a column, insert
 and remove. The file on disk stays a plain GFM pipe table throughout.
+
+### Blocks you can write yourself
+
+Blocks are an extension point, not a fixed feature list. OMD looks for blocks in
+`<workspace>/.omd/blocks/` and `~/.omd/blocks/` each time it opens a document, so adding one means
+adding a directory to your own workspace — no fork, no build step, nothing recompiled.
+
+The smallest real block is one file. Save this as `.omd/blocks/badge/block.json`:
+
+```json
+{
+  "name": "badge",
+  "title": "Badge",
+  "kind": "leaf",
+  "icon": "tag",
+  "group": "Inline",
+  "defaultParams": { "label": "new", "color": "#3fb950" },
+  "params": [
+    { "name": "label", "label": "Label", "type": "string", "required": true },
+    { "name": "color", "label": "Color", "type": "color" }
+  ],
+  "template": "<span style=\"padding:1px 8px;border-radius:999px;color:#fff;background:{{color}}\">{{label}}</span>"
+}
+```
+
+Reopen the `.md` file and **Badge** is in the `/` menu, with Label and Color editable in the
+property panel. On disk it's one HTML comment — `<!-- omd:badge {"label":"new","color":"#3fb950"} -->`
+— so the document is still plain markdown and still round-trips byte-for-byte.
+
+That example runs no code: a `template` block is an eval-free Handlebars subset, escaped and
+sanitized. Drop a `render.js` beside the manifest and you get a `sandboxed` block instead — your
+code runs in an opaque-origin iframe with no network and no access to the editor's DOM, cookies, or
+storage. A block OMD didn't ship never runs with the editor's privileges, and that's enforced when
+the manifest is parsed, not left to trust.
+
+Worth knowing up front: a custom block's shortcode is an HTML comment, so a reader on GitHub sees an
+empty spot unless the block also emits a plain-GFM form alongside it; and discovery runs per
+document, so reopen the file after you edit a block.
+
+The full manifest reference, both render tiers, and two copy-start examples are in the repo:
+[authoring smart blocks](https://github.com/pbleisch/omd/blob/HEAD/docs/contributing/AUTHORING-SMART-BLOCKS.md)
+and [`examples/blocks/`](https://github.com/pbleisch/omd/tree/HEAD/examples/blocks).
 
 ## Getting started
 
