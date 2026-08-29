@@ -21,7 +21,8 @@ so nothing about your file is proprietary, and it renders the same on GitHub as 
 - **Smart blocks** — insert with `/`: callouts, collapsible sections, tabs, columns, an interactive
   **chart** (backed by a real data table), YouTube embeds, image galleries, a live table of
   contents, dates, footnotes, and **link cards** (rich URL previews). Each serializes to a form a
-  plain markdown reader still understands.
+  plain markdown reader still understands, and the set is open — see
+  [Writing your own blocks](#writing-your-own-blocks).
 - **Spreadsheet-style tables** — overlay controls, move/sort columns and rows, keyboard navigation,
   and high-fidelity copy/paste to and from Excel, Sheets, and Word.
 - **Comments & collaboration** — thread a comment on any selection; comments live *in the file* and
@@ -44,6 +45,49 @@ so nothing about your file is proprietary, and it renders the same on GitHub as 
    **OMD: Reopen as plain text** drops a single file back to plain text without changing the default.
 
 New to it? Open the bundled **`showcase/`** wiki in the source repo — it exercises every feature.
+
+## Writing your own blocks
+
+The block list isn't fixed. OMD discovers blocks from `<workspace>/.omd/blocks/` and
+`~/.omd/blocks/` when it opens a document, so adding one is adding a directory — no fork, no
+rebuild, no patched extension.
+
+The smallest real block is a single file. `.omd/blocks/badge/block.json`:
+
+```json
+{
+  "name": "badge",
+  "title": "Badge",
+  "kind": "leaf",
+  "icon": "tag",
+  "group": "Inline",
+  "defaultParams": { "label": "new", "color": "#3fb950" },
+  "params": [
+    { "name": "label", "label": "Label", "type": "string", "required": true },
+    { "name": "color", "label": "Color", "type": "color" }
+  ],
+  "template": "<span style=\"padding:1px 8px;border-radius:999px;color:#fff;background:{{color}}\">{{label}}</span>"
+}
+```
+
+Reopen the `.md` file and **Badge** is in the `/` menu, with Label and Color editable in the
+property panel. On disk it's one HTML comment — `<!-- omd:badge {"label":"new","color":"#3fb950"} -->`
+— so the file is still plain markdown and still round-trips byte-for-byte.
+
+Blocks run in one of two tiers, and which one you get is decided at parse time, not by trust. A
+`template` block renders an eval-free Handlebars subset with escaped, sanitized output and executes
+no code. Adding a `render.js` beside the manifest gets you a `sandboxed` block: your code runs in an
+opaque-origin iframe with no network and no reach into the editor's DOM, cookies, or storage. A block
+OMD didn't ship never runs with the editor's privileges.
+
+Two things worth knowing before you start. A custom block's shortcode is an HTML comment, so a
+reader **on GitHub sees an empty spot** unless the block also emits a plain-GFM coexistence form
+(how the built-ins do it: [`docs/design/FORMATS.md`](docs/design/FORMATS.md)). And discovery runs per
+document — reopen the file after you add or edit a block.
+
+Full manifest reference, both tiers, and two copy-start examples:
+[`docs/contributing/AUTHORING-SMART-BLOCKS.md`](docs/contributing/AUTHORING-SMART-BLOCKS.md) and
+[`examples/blocks/`](examples/blocks/). From a clone, `npm run new:block -- my-block` scaffolds one.
 
 ## Privacy & network use
 
